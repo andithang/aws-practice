@@ -1,0 +1,21 @@
+{
+  "name": "aws-exam-frontend",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "cookie": "^0.6.0",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "serverless-http": "^3.2.0",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.2.79"
+  }
+}
