@@ -1,0 +1,258 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS exam practice generator and SSR app
+
+Parameters:
+  AdminApiKeyName:
+    Type: String
+    Default: aws-exam-admin-key
+  GeminiModel:
+    Type: String
+    Default: gemini-2.5-flash
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - arm64
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref QuestionsTable
+        GEMINI_MODEL: !Ref GeminiModel
+        ADMIN_TOKEN_SECRET_ID: !Ref AdminTokenSecret
+        GEMINI_API_KEY_SECRET_ID: !Ref GeminiApiKeySecret
+
+Resources:
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Auth:
+        ApiKeyRequired: false
+        UsagePlan:
+          CreateUsagePlan: PER_API
+          Description: Admin-only API key usage plan
+          UsagePlanName: aws-exam-admin-usage
+
+  AdminApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Enabled: true
+      Name: !Ref AdminApiKeyName
+      StageKeys:
+        - RestApiId: !Ref ApiGateway
+          StageName: prod
+
+  QuestionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: aws_exam_questions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  AdminTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: aws-exam-admin-token
+      Description: Admin token for simple admin authentication
+      GenerateSecretString:
+        SecretStringTemplate: '{"token":"change-me"}'
+        GenerateStringKey: random
+        PasswordLength: 24
+
+  GeminiApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: aws-exam-gemini-api-key
+      Description: Gemini API key as JSON: {"apiKey":"..."}
+      SecretString: '{"apiKey":"replace-in-console"}'
+
+  DailyGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: daily-generator/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Ref AdminTokenSecret
+                - !Ref GeminiApiKeySecret
+      Events:
+        DailySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+            Enabled: true
+
+  PracticeQuestionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: practice-questions/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref QuestionsTable
+      Events:
+        GetPracticeQuestions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/practice/questions
+            Method: GET
+
+  AdminLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-login/handler.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminLogin:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/login
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+
+  AdminGenerateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-generate/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Ref AdminTokenSecret
+                - !Ref GeminiApiKeySecret
+      Events:
+        AdminGenerate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/generate
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+
+  AdminBatchesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-batches/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminBatches:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/batches
+            Method: GET
+            Auth:
+              ApiKeyRequired: true
+
+  AdminBatchPublishFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-batch-publish/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminBatchPublish:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/batches/{batchId}/publish
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+
+  AdminBatchDeprecateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-batch-deprecate/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminBatchDeprecate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/batches/{batchId}/deprecate
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+
+  NextSsrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: frontend
+      Handler: lambda.handler
+      MemorySize: 512
+      Timeout: 30
+      Events:
+        NextRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /
+            Method: ANY
+        NextProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod'
