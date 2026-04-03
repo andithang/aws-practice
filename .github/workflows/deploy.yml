@@ -38,6 +38,18 @@ jobs:
         run: cd frontend && npm run build
       - name: SAM build
         run: sam build
+      - name: Recover stack from ROLLBACK_COMPLETE
+        shell: bash
+        run: |
+          set -euo pipefail
+          STACK_STATUS="$(aws cloudformation describe-stacks --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --query 'Stacks[0].StackStatus' --output text 2>/dev/null || true)"
+          if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
+            echo "Stack $SAM_STACK_NAME is ROLLBACK_COMPLETE. Deleting before deploy..."
+            aws cloudformation delete-stack --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION"
+            aws cloudformation wait stack-delete-complete --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION"
+          else
+            echo "Stack status is '$STACK_STATUS'. Continuing."
+          fi
       - name: SAM deploy
         run: |
           sam deploy --s3-bucket "$S3_ARTIFACTS_BUCKET" --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
