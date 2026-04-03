@@ -27,5 +27,5 @@ jobs:
       - name: SAM deploy
         env:
           SAM_STACK_NAME: aws-exam-practice
-          SAM_REGION: us-east-1
+          SAM_REGION: ap-southeast-1
         run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$SAM_REGION" --capabilities CAPABILITY_IAM
