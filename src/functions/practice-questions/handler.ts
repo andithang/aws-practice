@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { queryByPk } from '../common/aws';
 import { randomLevel } from '../common/generation';
+import { json } from '../common/http';
 
 export const handler: APIGatewayProxyHandler = async () => {
   const level = randomLevel();
@@ -10,9 +11,5 @@ export const handler: APIGatewayProxyHandler = async () => {
 
   const shuffled = items.sort(() => Math.random() - 0.5).slice(0, 10);
 
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ level, count: shuffled.length, questions: shuffled })
-  };
+  return json(200, { level, count: shuffled.length, questions: shuffled });
 };

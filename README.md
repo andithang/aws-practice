@@ -46,3 +46,14 @@ sam deploy --guided
 ## GitHub Actions
 
 Workflow in `.github/workflows/deploy.yml` builds and deploys on pushes to `main`.
+
+### Required GitHub Repository Secrets
+
+Use `.env.example` at the repository root as the source of truth for required secret names and sample values.
+
+The deploy workflow now:
+- uses only GitHub repository secrets for all job-level environment variables
+- does not configure API Gateway custom domains
+
+For GitHub Pages custom domain (`aws-practice.andithang.org`), configure the Pages site domain in repository settings and ensure your published Pages source contains `CNAME` with that value.
+This repo includes a root `CNAME` file set to `aws-practice.andithang.org`.

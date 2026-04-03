@@ -6,9 +6,18 @@ Parameters:
   AdminApiKeyName:
     Type: String
     Default: aws-exam-admin-key
+  AdminApiKeyValue:
+    Type: String
+    NoEcho: true
   GeminiModel:
     Type: String
     Default: gemini-2.5-flash
+  FrontendBackendApiBaseUrl:
+    Type: String
+    Default: http://127.0.0.1:3000
+  CorsAllowedOrigin:
+    Type: String
+    Default: https://aws-practice.andithang.org
 
 Globals:
   Function:
@@ -23,12 +32,17 @@ Globals:
         GEMINI_MODEL: !Ref GeminiModel
         ADMIN_TOKEN_SECRET_ID: !Ref AdminTokenSecret
         GEMINI_API_KEY_SECRET_ID: !Ref GeminiApiKeySecret
+        CORS_ALLOW_ORIGIN: !Ref CorsAllowedOrigin
 
 Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
+      Cors:
+        AllowOrigin: !Sub "'${CorsAllowedOrigin}'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
       Auth:
         ApiKeyRequired: false
         UsagePlan:
@@ -41,6 +55,7 @@ Resources:
     Properties:
       Enabled: true
       Name: !Ref AdminApiKeyName
+      Value: !Ref AdminApiKeyValue
       StageKeys:
         - RestApiId: !Ref ApiGateway
           StageName: prod
@@ -238,6 +253,10 @@ Resources:
       Handler: lambda.handler
       MemorySize: 512
       Timeout: 30
+      Environment:
+        Variables:
+          BACKEND_API_BASE_URL: !Ref FrontendBackendApiBaseUrl
+          ADMIN_API_KEY: !Ref AdminApiKeyValue
       Events:
         NextRoot:
           Type: Api

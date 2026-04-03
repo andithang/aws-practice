@@ -10,12 +10,25 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      SAM_STACK_NAME: ${{ secrets.SAM_STACK_NAME }}
+      ADMIN_API_KEY_NAME: ${{ secrets.ADMIN_API_KEY_NAME }}
+      ADMIN_API_KEY_VALUE: ${{ secrets.ADMIN_API_KEY_VALUE }}
+      GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+      FRONTEND_BACKEND_API_BASE_URL: ${{ secrets.FRONTEND_BACKEND_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: aws-actions/setup-sam@v2
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
       - name: Install dependencies
         run: |
           npm ci
@@ -25,7 +38,9 @@ jobs:
       - name: SAM build
         run: sam build
       - name: SAM deploy
-        env:
-          SAM_STACK_NAME: aws-exam-practice
-          SAM_REGION: ap-southeast-1
-        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$SAM_REGION" --capabilities CAPABILITY_IAM
+        run: |
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
+            AdminApiKeyName="$ADMIN_API_KEY_NAME" \
+            AdminApiKeyValue="$ADMIN_API_KEY_VALUE" \
+            GeminiModel="$GEMINI_MODEL" \
+            FrontendBackendApiBaseUrl="$FRONTEND_BACKEND_API_BASE_URL"
