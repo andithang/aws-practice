@@ -75,7 +75,7 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Name: aws-exam-gemini-api-key
-      Description: Gemini API key as JSON: {"apiKey":"..."}
+      Description: 'Gemini API key as JSON: {"apiKey":"..."}'
       SecretString: '{"apiKey":"replace-in-console"}'
 
   DailyGeneratorFunction:
