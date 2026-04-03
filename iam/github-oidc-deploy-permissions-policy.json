@@ -16,6 +16,7 @@
         "cloudformation:DescribeStacks",
         "cloudformation:ExecuteChangeSet",
         "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
         "cloudformation:ListStackResources",
         "cloudformation:UpdateStack",
         "cloudformation:ValidateTemplate"
@@ -122,6 +123,14 @@
         "arn:aws:secretsmanager:<AWS_REGION>:<ACCOUNT_ID>:secret:aws-exam-admin-token*",
         "arn:aws:secretsmanager:<AWS_REGION>:<ACCOUNT_ID>:secret:aws-exam-gemini-api-key*"
       ]
+    },
+    {
+      "Sid": "SecretsManagerGetRandomPassword",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetRandomPassword"
+      ],
+      "Resource": "*"
     },
     {
       "Sid": "EventBridgeScheduleDeploy",
