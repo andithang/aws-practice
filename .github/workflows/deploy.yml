@@ -17,6 +17,7 @@ jobs:
       ADMIN_API_KEY_NAME: ${{ secrets.ADMIN_API_KEY_NAME }}
       ADMIN_API_KEY_VALUE: ${{ secrets.ADMIN_API_KEY_VALUE }}
       GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+      S3_ARTIFACTS_BUCKET: ${{ secrets.S3_ARTIFACTS_BUCKET }}
       FRONTEND_BACKEND_API_BASE_URL: ${{ secrets.FRONTEND_BACKEND_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +40,7 @@ jobs:
         run: sam build
       - name: SAM deploy
         run: |
-          sam deploy --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
+          sam deploy --s3-bucket "$S3_ARTIFACTS_BUCKET" --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
             AdminApiKeyName="$ADMIN_API_KEY_NAME" \
             AdminApiKeyValue="$ADMIN_API_KEY_VALUE" \
             GeminiModel="$GEMINI_MODEL" \
