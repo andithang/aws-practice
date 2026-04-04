@@ -175,37 +175,47 @@ export default function Admin() {
           )}
 
           <ul className="grid gap-3">
-            {sortedBatches.map((batch) => (
-              <li
-                key={batch.batchId}
-                className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-500">
-                    {batch.level}
-                  </p>
-                  <p className="text-sm text-slate-700 dark:text-slate-200">{batch.date}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Status: {batch.status}</p>
-                </div>
+            {sortedBatches.map((batch) => {
+                const status = batch.status.toLowerCase();
+                const showPublish = status !== 'published';
+                const showDeprecate = status !== 'deprecated';
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => mark('publish', batch)}
-                    disabled={pendingAction !== ''}
-                    className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                return (
+                  <li
+                    key={batch.batchId}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    {pendingAction === 'publish' ? 'Working...' : 'Publish'}
-                  </button>
-                  <button
-                    onClick={() => mark('deprecate', batch)}
-                    disabled={pendingAction !== ''}
-                    className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {pendingAction === 'deprecate' ? 'Working...' : 'Deprecate'}
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-brand-600 dark:text-brand-500">
+                        {batch.level}
+                      </p>
+                      <p className="text-sm text-slate-700 dark:text-slate-200">{batch.date}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Status: {batch.status}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {showPublish && (
+                        <button
+                          onClick={() => mark('publish', batch)}
+                          disabled={pendingAction !== ''}
+                          className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {pendingAction === 'publish' ? 'Working...' : 'Publish'}
+                        </button>
+                      )}
+                      {showDeprecate && (
+                        <button
+                          onClick={() => mark('deprecate', batch)}
+                          disabled={pendingAction !== ''}
+                          className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {pendingAction === 'deprecate' ? 'Working...' : 'Deprecate'}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
           </ul>
         </section>
       </div>

@@ -113,7 +113,7 @@ Resources:
         DailySchedule:
           Type: Schedule
           Properties:
-            Schedule: rate(1 day)
+            Schedule: rate(8 hours)
             Enabled: true
     Metadata:
       BuildMethod: esbuild

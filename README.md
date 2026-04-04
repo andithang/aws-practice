@@ -4,7 +4,7 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 
 ## Architecture
 
-- **Daily generation**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
+- **Scheduled generation (every 8 hours)**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
 - **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
 - **Frontend**: Next.js static export hosted on GitHub Pages.
