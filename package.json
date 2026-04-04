@@ -4,7 +4,9 @@
   "scripts": {
     "build:functions": "echo 'Build handled by sam build with esbuild'",
     "validate": "sam validate",
-    "build:frontend": "cd frontend && npm run build"
+    "build:frontend": "cd frontend && npm run build",
+    "lint": "eslint \"**/*.{ts,tsx,json,html}\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.775.0",
@@ -12,7 +14,20 @@
     "@aws-sdk/lib-dynamodb": "^3.775.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "@html-eslint/eslint-plugin": "^0.47.0",
+    "@html-eslint/parser": "^0.47.0",
     "@types/aws-lambda": "^8.10.137",
-    "typescript": "^5.4.5"
+    "@types/node": "^25.5.2",
+    "eslint": "^9.37.0",
+    "eslint-plugin-jsonc": "^2.20.1",
+    "husky": "^9.1.7",
+    "jsonc-eslint-parser": "^2.4.1",
+    "lint-staged": "^16.2.6",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.46.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,json,html}": "eslint --fix --max-warnings=0"
   }
 }

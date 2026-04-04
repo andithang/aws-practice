@@ -6,9 +6,9 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 
 - **Daily generation**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
-- **Admin API**: API Gateway API key + Bearer token validation (token in Secrets Manager).
+- **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
 - **Frontend**: Next.js static export hosted on GitHub Pages.
-- **Admin browser flow**: Frontend calls Lambda proxy endpoints (`/api/admin/login-proxy`, `/api/admin/command`) so `x-api-key` stays server-side.
+- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate` directly.
 
 ## Core constraints implemented
 
@@ -37,14 +37,49 @@ sam deploy --guided
 
 Frontend deploy is handled by GitHub Actions to GitHub Pages (`frontend/out`).
 
+## Run APIs locally
+
+Local API runs in SAM Docker, but still calls your real AWS resources (DynamoDB + Secrets Manager), so valid AWS credentials are required.
+
+### 1) Prepare local config
+
+1. Copy `env.local.json.example` to `env.local.json` (already created in this repo).
+2. Update values in `env.local.json` if your table/secret IDs differ.
+3. Ensure AWS credentials are available locally (`aws configure` or `AWS_PROFILE`).
+
+### 2) Start local API
+
+```powershell
+.\scripts\start-local-api.ps1
+```
+
+Default URL: `http://127.0.0.1:3001`
+
+### 3) Smoke-test endpoints
+
+```powershell
+.\scripts\smoke-local-api.ps1 -AdminToken "<your-admin-token>"
+```
+
+Optional (will generate new question batches):
+
+```powershell
+.\scripts\smoke-local-api.ps1 -AdminToken "<your-admin-token>" -RunMutations
+```
+
+### 4) Point frontend to local API
+
+```powershell
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:3001"
+cd frontend
+npm run dev
+```
+
 ## Required environment/secrets
 
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
 - `GEMINI_API_KEY_SECRET_ID` -> Secrets Manager JSON `{ "apiKey": "..." }`
 - `ADMIN_TOKEN_SECRET_ID` -> Secrets Manager JSON `{ "token": "..." }`
-- Admin proxy Lambda env:
-  - `BACKEND_API_BASE_URL`
-  - `ADMIN_API_KEY`
 - Frontend build env:
   - `NEXT_PUBLIC_API_BASE_URL`
 

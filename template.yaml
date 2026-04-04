@@ -3,15 +3,9 @@ Transform: AWS::Serverless-2016-10-31
 Description: AWS exam practice generator and static frontend API
 
 Parameters:
-  AdminApiKeyValue:
-    Type: String
-    NoEcho: true
   GeminiModel:
     Type: String
     Default: gemini-2.5-flash
-  FrontendBackendApiBaseUrl:
-    Type: String
-    Default: http://127.0.0.1:3000
   CorsAllowedOrigin:
     Type: String
     Default: https://aws-practice.andithang.org
@@ -66,33 +60,6 @@ Resources:
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
         gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
 
-  AdminApiKey:
-    Type: AWS::ApiGateway::ApiKey
-    Properties:
-      Enabled: true
-      Value: !Ref AdminApiKeyValue
-
-  AdminUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
-    DependsOn:
-      - ApiGatewayprodStage
-    Properties:
-      UsagePlanName: aws-exam-admin-usage
-      Description: Admin-only API key usage plan
-      ApiStages:
-        - ApiId: !Ref ApiGateway
-          Stage: !Ref ApiGatewayprodStage
-
-  AdminUsagePlanKey:
-    Type: AWS::ApiGateway::UsagePlanKey
-    DependsOn:
-      - AdminApiKey
-      - AdminUsagePlan
-    Properties:
-      KeyId: !Ref AdminApiKey
-      KeyType: API_KEY
-      UsagePlanId: !Ref AdminUsagePlan
-
   QuestionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -131,6 +98,7 @@ Resources:
     Properties:
       CodeUri: src/functions
       Handler: daily-generator/handler.handler
+      Timeout: 180
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
@@ -192,8 +160,6 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/login
             Method: POST
-            Auth:
-              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -205,6 +171,7 @@ Resources:
     Properties:
       CodeUri: src/functions
       Handler: admin-generate/handler.handler
+      Timeout: 180
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
@@ -222,8 +189,6 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/generate
             Method: POST
-            Auth:
-              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -250,8 +215,6 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/batches
             Method: GET
-            Auth:
-              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -278,8 +241,6 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/batches/{batchId}/publish
             Method: POST
-            Auth:
-              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -306,57 +267,11 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/batches/{batchId}/deprecate
             Method: POST
-            Auth:
-              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
           - admin-batch-deprecate/handler.ts
-
-  AdminLoginProxyFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/functions
-      Handler: admin-login-proxy/handler.handler
-      Environment:
-        Variables:
-          BACKEND_API_BASE_URL: !Ref FrontendBackendApiBaseUrl
-          ADMIN_API_KEY: !Ref AdminApiKeyValue
-      Events:
-        AdminLoginProxy:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /api/admin/login-proxy
-            Method: POST
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        EntryPoints:
-          - admin-login-proxy/handler.ts
-
-  AdminCommandProxyFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/functions
-      Handler: admin-command-proxy/handler.handler
-      Environment:
-        Variables:
-          BACKEND_API_BASE_URL: !Ref FrontendBackendApiBaseUrl
-          ADMIN_API_KEY: !Ref AdminApiKeyValue
-      Events:
-        AdminCommandProxy:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ApiGateway
-            Path: /api/admin/command
-            Method: POST
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        EntryPoints:
-          - admin-command-proxy/handler.ts
 
 Outputs:
   ApiBaseUrl:
