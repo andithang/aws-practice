@@ -46,10 +46,6 @@ Resources:
         AllowCredentials: true
       Auth:
         ApiKeyRequired: false
-        UsagePlan:
-          CreateUsagePlan: PER_API
-          Description: Admin-only API key usage plan
-          UsagePlanName: aws-exam-admin-usage
 
   AdminApiKey:
     Type: AWS::ApiGateway::ApiKey
@@ -57,9 +53,27 @@ Resources:
       Enabled: true
       Name: !Ref AdminApiKeyName
       Value: !Ref AdminApiKeyValue
-      StageKeys:
-        - RestApiId: !Ref ApiGateway
-          StageName: prod
+
+  AdminUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - ApiGatewayprodStage
+    Properties:
+      UsagePlanName: aws-exam-admin-usage
+      Description: Admin-only API key usage plan
+      ApiStages:
+        - ApiId: !Ref ApiGateway
+          Stage: !Ref ApiGatewayprodStage
+
+  AdminUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    DependsOn:
+      - AdminApiKey
+      - AdminUsagePlan
+    Properties:
+      KeyId: !Ref AdminApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref AdminUsagePlan
 
   QuestionsTable:
     Type: AWS::DynamoDB::Table
