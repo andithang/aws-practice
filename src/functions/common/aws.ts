@@ -1,11 +1,19 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  BatchGetCommand,
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+  TransactWriteCommand,
+  UpdateCommand
+} from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const secrets = new SecretsManagerClient({});
 
 export const tableName = process.env.TABLE_NAME!;
+export type TableKey = { PK: string; SK: string };
 
 export async function getSecretJson(secretId: string): Promise<Record<string, string>> {
   const out = await secrets.send(new GetSecretValueCommand({ SecretId: secretId }));
@@ -21,6 +29,80 @@ export async function queryByPk(pk: string) {
     TableName: tableName,
     KeyConditionExpression: 'PK = :pk',
     ExpressionAttributeValues: { ':pk': pk }
+  }));
+}
+
+export async function queryAllByPk(pk: string, scanIndexForward = true): Promise<Record<string, unknown>[]> {
+  const items: Record<string, unknown>[] = [];
+  let lastEvaluatedKey: Record<string, unknown> | undefined;
+
+  do {
+    const output = await ddb.send(new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeValues: { ':pk': pk },
+      ExclusiveStartKey: lastEvaluatedKey,
+      ScanIndexForward: scanIndexForward
+    }));
+
+    items.push(...(output.Items || []));
+    lastEvaluatedKey = output.LastEvaluatedKey as Record<string, unknown> | undefined;
+  } while (lastEvaluatedKey);
+
+  return items;
+}
+
+export async function batchGetItems(keys: TableKey[]): Promise<Record<string, unknown>[]> {
+  if (keys.length === 0) return [];
+
+  const items: Record<string, unknown>[] = [];
+  let requestItems: Record<string, { Keys: TableKey[] }> = {
+    [tableName]: { Keys: keys }
+  };
+
+  while (Object.keys(requestItems).length > 0) {
+    const output = await ddb.send(new BatchGetCommand({ RequestItems: requestItems }));
+    items.push(...((output.Responses?.[tableName] as Record<string, unknown>[] | undefined) || []));
+    requestItems = (output.UnprocessedKeys as Record<string, { Keys: TableKey[] }> | undefined) || {};
+  }
+
+  return items;
+}
+
+export async function transactUpdateQuestionPublication(
+  keys: TableKey[],
+  action: 'publish' | 'deprecate',
+  timestamp: string
+): Promise<void> {
+  if (keys.length === 0) return;
+
+  const isPublished = action === 'publish';
+  const updateExpression = isPublished
+    ? 'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #publishedAt = :timestamp REMOVE #deprecatedAt'
+    : 'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #deprecatedAt = :timestamp';
+
+  await ddb.send(new TransactWriteCommand({
+    TransactItems: keys.map((key) => ({
+      Update: {
+        TableName: tableName,
+        Key: key,
+        ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK) AND #entityType = :entityType',
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: {
+          '#entityType': 'entityType',
+          '#isPublished': 'isPublished',
+          '#updatedAt': 'updatedAt',
+          '#publishedAt': 'publishedAt',
+          '#deprecatedAt': 'deprecatedAt'
+        },
+        ExpressionAttributeValues: {
+          ':entityType': 'QUESTION',
+          ':isPublished': isPublished,
+          ':updatedAt': timestamp,
+          ':timestamp': timestamp
+        }
+      }
+    }))
   }));
 }
 

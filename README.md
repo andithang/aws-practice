@@ -8,7 +8,7 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
 - **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
 - **Frontend**: Next.js static export hosted on GitHub Pages.
-- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate` directly.
+- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status` directly.
 
 ## Core constraints implemented
 

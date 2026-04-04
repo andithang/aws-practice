@@ -273,6 +273,58 @@ Resources:
         EntryPoints:
           - admin-batch-deprecate/handler.ts
 
+  AdminQuestionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-questions/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminQuestions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/questions
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-questions/handler.ts
+
+  AdminQuestionStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-question-status/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminQuestionStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/questions/status
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-question-status/handler.ts
+
 Outputs:
   ApiBaseUrl:
     Description: Base URL
