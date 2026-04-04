@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AWS exam practice generator and SSR app
+Description: AWS exam practice generator and static frontend API
 
 Parameters:
   AdminApiKeyName:
@@ -43,6 +43,7 @@ Resources:
         AllowOrigin: !Sub "'${CorsAllowedOrigin}'"
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        AllowCredentials: true
       Auth:
         ApiKeyRequired: false
         UsagePlan:
@@ -246,30 +247,39 @@ Resources:
             Auth:
               ApiKeyRequired: true
 
-  NextSsrFunction:
+  AdminLoginProxyFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: frontend
-      Handler: lambda.handler
-      MemorySize: 512
-      Timeout: 30
+      CodeUri: src/functions
+      Handler: admin-login-proxy/handler.handler
       Environment:
         Variables:
           BACKEND_API_BASE_URL: !Ref FrontendBackendApiBaseUrl
           ADMIN_API_KEY: !Ref AdminApiKeyValue
       Events:
-        NextRoot:
+        AdminLoginProxy:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /
-            Method: ANY
-        NextProxy:
+            Path: /api/admin/login-proxy
+            Method: POST
+
+  AdminCommandProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-command-proxy/handler.handler
+      Environment:
+        Variables:
+          BACKEND_API_BASE_URL: !Ref FrontendBackendApiBaseUrl
+          ADMIN_API_KEY: !Ref AdminApiKeyValue
+      Events:
+        AdminCommandProxy:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /{proxy+}
-            Method: ANY
+            Path: /api/admin/command
+            Method: POST
 
 Outputs:
   ApiBaseUrl:

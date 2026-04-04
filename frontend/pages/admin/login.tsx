@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
+import { apiUrl } from '../../lib/api';
 
 export default function AdminLogin() {
   const [token, setToken] = useState('');
@@ -8,8 +9,9 @@ export default function AdminLogin() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const res = await fetch('/api/admin/login-proxy', {
+    const res = await fetch(apiUrl('/api/admin/login-proxy'), {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });

@@ -1,26 +1,77 @@
-import type { GetServerSideProps } from 'next';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { apiUrl } from '../../lib/api';
 
-type Props = { batches: any[] };
+export default function Admin() {
+  const router = useRouter();
+  const [batches, setBatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-export default function Admin({ batches }: Props) {
+  async function loadBatches() {
+    setError('');
+    const res = await fetch(apiUrl('/api/admin/command'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list' })
+    });
+
+    if (res.status === 401) {
+      router.replace('/admin/login');
+      return;
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Failed to load batches (${res.status})`);
+    }
+
+    const data = await res.json();
+    setBatches(data.batches || []);
+  }
+
+  useEffect(() => {
+    async function bootstrap() {
+      try {
+        await loadBatches();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    bootstrap();
+  }, []);
+
   async function generate() {
-    await fetch('/api/admin/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate' }) });
-    location.reload();
+    await fetch(apiUrl('/api/admin/command'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate' })
+    });
+    await loadBatches();
   }
 
   async function mark(action: 'publish' | 'deprecate', batch: any) {
-    await fetch('/api/admin/command', {
+    await fetch(apiUrl('/api/admin/command'), {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, batchId: batch.batchId, level: batch.level, date: batch.date })
     });
-    location.reload();
+    await loadBatches();
   }
 
   return (
     <main>
       <h1>Admin</h1>
       <button onClick={generate}>Trigger generation</button>
+      {loading && <p>Loading batches...</p>}
+      {error && <p>{error}</p>}
       <ul>
         {batches.map((b) => (
           <li key={b.batchId}>{b.level} - {b.date} - {b.status} <button onClick={() => mark('publish', b)}>Publish</button> <button onClick={() => mark('deprecate', b)}>Deprecate</button></li>
@@ -29,15 +80,3 @@ export default function Admin({ batches }: Props) {
     </main>
   );
 }
-
-export const getServerSideProps: GetServerSideProps<Props> = async ({ req }) => {
-  const token = req.headers.cookie?.split(';').find((c) => c.trim().startsWith('adminToken='))?.split('=')[1];
-  if (!token) return { redirect: { destination: '/admin/login', permanent: false } };
-
-  const base = process.env.BACKEND_API_BASE_URL || 'http://127.0.0.1:3000';
-  const apiKey = process.env.ADMIN_API_KEY || '';
-  const res = await fetch(`${base}/api/admin/batches`, { headers: { 'x-api-key': apiKey, Authorization: `Bearer ${token}` } });
-  if (res.status === 401) return { redirect: { destination: '/admin/login', permanent: false } };
-  const data = await res.json();
-  return { props: { batches: data.batches || [] } };
-};
