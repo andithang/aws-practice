@@ -3,9 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: AWS exam practice generator and static frontend API
 
 Parameters:
-  AdminApiKeyName:
-    Type: String
-    Default: aws-exam-admin-key
   AdminApiKeyValue:
     Type: String
     NoEcho: true
@@ -51,7 +48,6 @@ Resources:
     Type: AWS::ApiGateway::ApiKey
     Properties:
       Enabled: true
-      Name: !Ref AdminApiKeyName
       Value: !Ref AdminApiKeyValue
 
   AdminUsagePlan:
