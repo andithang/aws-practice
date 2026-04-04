@@ -44,6 +44,28 @@ Resources:
       Auth:
         ApiKeyRequired: false
 
+  ApiGatewayDefault4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResponseType: DEFAULT_4XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+
+  ApiGatewayDefault5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResponseType: DEFAULT_5XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+
   AdminApiKey:
     Type: AWS::ApiGateway::ApiKey
     Properties:
@@ -125,6 +147,11 @@ Resources:
           Properties:
             Schedule: rate(1 day)
             Enabled: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - daily-generator/handler.ts
 
   PracticeQuestionsFunction:
     Type: AWS::Serverless::Function
@@ -141,6 +168,11 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/practice/questions
             Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - practice-questions/handler.ts
 
   AdminLoginFunction:
     Type: AWS::Serverless::Function
@@ -162,6 +194,11 @@ Resources:
             Method: POST
             Auth:
               ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-login/handler.ts
 
   AdminGenerateFunction:
     Type: AWS::Serverless::Function
@@ -187,6 +224,11 @@ Resources:
             Method: POST
             Auth:
               ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-generate/handler.ts
 
   AdminBatchesFunction:
     Type: AWS::Serverless::Function
@@ -210,6 +252,11 @@ Resources:
             Method: GET
             Auth:
               ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-batches/handler.ts
 
   AdminBatchPublishFunction:
     Type: AWS::Serverless::Function
@@ -233,6 +280,11 @@ Resources:
             Method: POST
             Auth:
               ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-batch-publish/handler.ts
 
   AdminBatchDeprecateFunction:
     Type: AWS::Serverless::Function
@@ -256,6 +308,11 @@ Resources:
             Method: POST
             Auth:
               ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-batch-deprecate/handler.ts
 
   AdminLoginProxyFunction:
     Type: AWS::Serverless::Function
@@ -273,6 +330,11 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/login-proxy
             Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-login-proxy/handler.ts
 
   AdminCommandProxyFunction:
     Type: AWS::Serverless::Function
@@ -290,6 +352,11 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/admin/command
             Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-command-proxy/handler.ts
 
 Outputs:
   ApiBaseUrl:

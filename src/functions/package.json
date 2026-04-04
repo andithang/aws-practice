@@ -1,0 +1,10 @@
+{
+  "name": "aws-practice-functions",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.775.0",
+    "@aws-sdk/client-secrets-manager": "^3.775.0",
+    "@aws-sdk/lib-dynamodb": "^3.775.0",
+    "esbuild": "^0.25.10"
+  }
+}
