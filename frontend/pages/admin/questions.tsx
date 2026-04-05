@@ -564,7 +564,7 @@ export default function AdminQuestionsPage() {
                         <td className="px-3 py-3 text-slate-700 dark:text-slate-200">
                           {formatClientDateTime(question.createdAt)}
                         </td>
-                        <td className="min-w-[18rem] px-3 py-3">
+                        <td className="px-3 py-3">
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-semibold ${
                               question.isPublished
@@ -575,7 +575,7 @@ export default function AdminQuestionsPage() {
                             {question.isPublished ? 'published' : 'deprecated'}
                           </span>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="min-w-[18rem] px-3 py-3">
                           {isEditing ? (
                             <div className="space-y-2">
                               <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
