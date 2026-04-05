@@ -1,11 +1,30 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { queryByPk } from '../common/aws';
-import { randomLevel } from '../common/generation';
+import { queryAllByPk } from '../common/aws';
 import { json } from '../common/http';
 import { errorLogFields, logError, logInfo } from '../common/log';
 import { Level } from '../common/types';
 
 const levels: Level[] = ['practitioner', 'associate', 'professional'];
+const defaultPage = 1;
+const defaultSize = 10;
+const maxPageSize = 100;
+const windowSize = 100;
+
+type QuestionRecord = {
+  createdAt: string;
+};
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseNonNegativeInt(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
 
 function parseLevel(rawLevel: string | undefined): Level | undefined {
   if (!rawLevel) return undefined;
@@ -13,26 +32,104 @@ function parseLevel(rawLevel: string | undefined): Level | undefined {
   return undefined;
 }
 
+function isQuestionRecord(item: Record<string, unknown>): item is Record<string, unknown> & QuestionRecord {
+  return (
+    item.entityType === 'QUESTION' &&
+    item.isPublished === true &&
+    typeof item.createdAt === 'string' &&
+    item.createdAt.length > 0
+  );
+}
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   const requestFields = { lambda: 'practice-questions', requestId: event.requestContext.requestId };
   logInfo('Request received', requestFields);
 
   try {
-    const rawLevel = event.queryStringParameters?.level;
+    const query = event.queryStringParameters || {};
+    const rawLevel = query.level;
     const requestedLevel = parseLevel(rawLevel);
-    if (rawLevel && !requestedLevel) {
+    if (!rawLevel) {
+      return json(400, { message: `level is required. Supported values: ${levels.join(', ')}` });
+    }
+
+    if (!requestedLevel) {
       return json(400, { message: `Invalid level. Supported values: ${levels.join(', ')}` });
     }
 
-    const level = requestedLevel || randomLevel();
+    const page = parsePositiveInt(query.page, defaultPage);
+    const size = Math.min(parsePositiveInt(query.size, defaultSize), maxPageSize);
+    const requestedWindow = parseNonNegativeInt(query.window, 0);
+    const pagesPerWindow = Math.max(1, Math.ceil(windowSize / size));
+
+    let effectivePage = page;
+    let effectiveWindow = requestedWindow;
+    let didWindowRollover = false;
+    if (page > pagesPerWindow) {
+      effectivePage = 1;
+      effectiveWindow += 1;
+      didWindowRollover = true;
+    }
+
+    const level = requestedLevel;
     const pk = `LEVEL#${level}`;
-    const result = await queryByPk(pk);
-    const items = (result.Items || []).filter((i) => i.entityType === 'QUESTION' && i.isPublished);
+    const queriedItems = await queryAllByPk(pk, false);
+    const publishedQuestions = queriedItems
+      .filter((item): item is Record<string, unknown> & QuestionRecord => isQuestionRecord(item))
+      .sort((left, right) => {
+        const createdCompare = right.createdAt.localeCompare(left.createdAt);
+        if (createdCompare !== 0) return createdCompare;
+        const leftSk = typeof left.SK === 'string' ? left.SK : '';
+        const rightSk = typeof right.SK === 'string' ? right.SK : '';
+        return rightSk.localeCompare(leftSk);
+      });
 
-    const shuffled = items.sort(() => Math.random() - 0.5).slice(0, 10);
-    logInfo('Practice questions returned', { ...requestFields, level, count: shuffled.length });
+    const windowStart = effectiveWindow * windowSize;
+    const windowEnd = windowStart + windowSize;
+    const currentWindowQuestions = publishedQuestions.slice(windowStart, windowEnd);
 
-    return json(200, { level, count: shuffled.length, questions: shuffled });
+    const pageStart = (effectivePage - 1) * size;
+    const pageEnd = pageStart + size;
+    const pageQuestions = currentWindowQuestions.slice(pageStart, pageEnd);
+
+    const totalFiltered = publishedQuestions.length;
+    const totalInWindow = currentWindowQuestions.length;
+    const totalPagesInWindow = totalInWindow === 0 ? 0 : Math.ceil(totalInWindow / size);
+    const hasNextWindow = totalFiltered > windowEnd;
+    const hasPrevWindow = effectiveWindow > 0;
+
+    logInfo('Practice questions returned', {
+      ...requestFields,
+      level,
+      requestedPage: page,
+      requestedWindow,
+      effectivePage,
+      effectiveWindow,
+      size,
+      totalFiltered,
+      returned: pageQuestions.length,
+      didWindowRollover
+    });
+
+    return json(200, {
+      level,
+      count: pageQuestions.length,
+      questions: pageQuestions,
+      pagination: {
+        requestedPage: page,
+        effectivePage,
+        size,
+        windowSize,
+        requestedWindow,
+        effectiveWindow,
+        didWindowRollover,
+        hasNextWindow,
+        hasPrevWindow,
+        totalFiltered,
+        totalInWindow,
+        totalPagesInWindow
+      }
+    });
   } catch (error) {
     logError('Handler failed', { ...requestFields, ...errorLogFields(error) });
     return json(500, { message: 'Internal server error' });

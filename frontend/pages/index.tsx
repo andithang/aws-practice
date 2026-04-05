@@ -1,3 +1,4 @@
+import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import ThemeToggle from '../components/ThemeToggle';
@@ -18,8 +19,12 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <>
+      <Head>
+        <title>AWS Practice | Home</title>
+      </Head>
+      <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-4xl flex-col gap-8">
         <header className="flex items-center justify-between">
           <span className="text-sm font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-500">
             AWS Practice
@@ -62,7 +67,8 @@ export default function Home() {
             </button>
           </div>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

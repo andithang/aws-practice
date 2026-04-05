@@ -325,6 +325,32 @@ Resources:
         EntryPoints:
           - admin-question-status/handler.ts
 
+  AdminQuestionAnswerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-question-answer/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminQuestionAnswer:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/questions/answer
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-question-answer/handler.ts
+
 Outputs:
   ApiBaseUrl:
     Description: Base URL

@@ -18,6 +18,8 @@ export type AdminQuestion = {
   stem: string;
   explanation: string;
   examStyle: string;
+  options: Array<{ key: string; text: string }>;
+  correctAnswers: string[];
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;
@@ -204,4 +206,27 @@ export async function updateAdminQuestionsStatus(
   if (!response.ok) {
     throw new Error(await readError(response, `Question update failed (${response.status})`));
   }
+}
+
+export async function updateAdminQuestionAnswer(
+  questionId: string,
+  correctAnswers: string[]
+): Promise<{ questionId: string; updatedAt: string }> {
+  const response = await adminRequest('/api/admin/questions/answer', {
+    method: 'POST',
+    body: JSON.stringify({ questionId, correctAnswers })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, `Answer update failed (${response.status})`));
+  }
+
+  const payload = (await response.json()) as {
+    updated?: { questionId?: string; updatedAt?: string };
+  };
+
+  return {
+    questionId: payload.updated?.questionId || questionId,
+    updatedAt: payload.updated?.updatedAt || ''
+  };
 }

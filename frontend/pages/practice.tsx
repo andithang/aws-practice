@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
 import { apiUrl } from '../lib/api';
 
@@ -15,7 +16,36 @@ type Question = {
   correctAnswers?: string[];
 };
 
+type Pagination = {
+  requestedPage: number;
+  effectivePage: number;
+  size: number;
+  windowSize: number;
+  requestedWindow: number;
+  effectiveWindow: number;
+  didWindowRollover: boolean;
+  hasNextWindow: boolean;
+  hasPrevWindow: boolean;
+  totalFiltered: number;
+  totalInWindow: number;
+  totalPagesInWindow: number;
+};
+
 const validLevels: Level[] = ['practitioner', 'associate', 'professional'];
+const defaultPagination: Pagination = {
+  requestedPage: 1,
+  effectivePage: 1,
+  size: 10,
+  windowSize: 100,
+  requestedWindow: 0,
+  effectiveWindow: 0,
+  didWindowRollover: false,
+  hasNextWindow: false,
+  hasPrevWindow: false,
+  totalFiltered: 0,
+  totalInWindow: 0,
+  totalPagesInWindow: 0
+};
 
 function parseSelectedLevel(value: string | string[] | undefined): Level | undefined {
   if (!value || Array.isArray(value)) return undefined;
@@ -25,12 +55,13 @@ function parseSelectedLevel(value: string | string[] | undefined): Level | undef
 
 export default function Practice() {
   const router = useRouter();
-  const [level, setLevel] = useState<string>('-');
+  const [level, setLevel] = useState<Level | ''>('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string[]>>({});
   const [checkedResults, setCheckedResults] = useState<Record<string, boolean>>({});
+  const [pagination, setPagination] = useState<Pagination>(defaultPagination);
 
   function getQuestionKey(question: Question, index: number): string {
     return question.questionId || `question-${index}`;
@@ -68,6 +99,40 @@ export default function Practice() {
     return picked.every((answer) => expectedSet.has(answer));
   }
 
+  async function loadQuestions(nextLevel: Level, page: number, window: number, size: number): Promise<void> {
+    setLoading(true);
+    setError('');
+
+    try {
+      const params = new URLSearchParams({
+        level: nextLevel,
+        page: String(page),
+        size: String(size),
+        window: String(window)
+      });
+
+      const res = await fetch(apiUrl(`/api/practice/questions?${params.toString()}`));
+      if (!res.ok) throw new Error(`Failed with status ${res.status}`);
+
+      const data = (await res.json()) as {
+        level?: Level;
+        questions?: Question[];
+        pagination?: Pagination;
+      };
+
+      setLevel(data.level || nextLevel);
+      setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      setPagination(data.pagination || { ...defaultPagination, size });
+      setSelectedAnswers({});
+      setCheckedResults({});
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!router.isReady) return;
 
@@ -78,63 +143,108 @@ export default function Practice() {
       return;
     }
 
-    async function loadQuestions() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await fetch(apiUrl(`/api/practice/questions?level=${selectedLevel}`));
-        if (!res.ok) throw new Error(`Failed with status ${res.status}`);
-        const data = await res.json();
-        setLevel(data.level || selectedLevel);
-        setQuestions(data.questions || []);
-        setSelectedAnswers({});
-        setCheckedResults({});
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadQuestions();
+    setLevel(selectedLevel);
+    void loadQuestions(selectedLevel, 1, 0, defaultPagination.size);
   }, [router.isReady, router.query.level]);
 
+  function goToPrevPage(): void {
+    if (!level) return;
+
+    if (pagination.effectivePage > 1) {
+      void loadQuestions(level, pagination.effectivePage - 1, pagination.effectiveWindow, pagination.size);
+      return;
+    }
+
+    if (pagination.hasPrevWindow) {
+      const previousWindow = Math.max(0, pagination.effectiveWindow - 1);
+      const lastPageOfPreviousWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+      void loadQuestions(level, lastPageOfPreviousWindow, previousWindow, pagination.size);
+    }
+  }
+
+  function goToNextPage(): void {
+    if (!level) return;
+
+    if (pagination.effectivePage < pagination.totalPagesInWindow) {
+      void loadQuestions(level, pagination.effectivePage + 1, pagination.effectiveWindow, pagination.size);
+      return;
+    }
+
+    if (pagination.hasNextWindow) {
+      void loadQuestions(
+        level,
+        pagination.totalPagesInWindow + 1,
+        pagination.effectiveWindow,
+        pagination.size
+      );
+    }
+  }
+
+  function changePageSize(size: number): void {
+    if (!level) return;
+    void loadQuestions(level, 1, 0, size);
+  }
+
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Practice session</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Practice ({level})</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Home
-            </Link>
-            <ThemeToggle />
-          </div>
-        </header>
+    <>
+      <Head>
+        <title>AWS Practice | Practice</title>
+      </Head>
+      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+          <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Practice session</p>
+              <h1 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Practice ({level || '-'})</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                Home
+              </Link>
+              <ThemeToggle />
+            </div>
+          </header>
 
-        {loading && (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm text-slate-600 dark:text-slate-300">Loading questions...</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {pagination.totalFiltered} published questions in this level | window {pagination.effectiveWindow + 1} | page {pagination.effectivePage}
+              </p>
+              <label className="text-sm">
+                <span className="mr-2 text-slate-600 dark:text-slate-300">Page size</span>
+                <select
+                  value={pagination.size}
+                  onChange={(event) => changePageSize(Number.parseInt(event.target.value, 10))}
+                  disabled={loading || !level}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+            </div>
           </section>
-        )}
 
-        {error && (
-          <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900 dark:bg-red-950">
-            <p className="text-sm text-red-700 dark:text-red-200">Failed to load questions: {error}</p>
-          </section>
-        )}
+          {loading && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-sm text-slate-600 dark:text-slate-300">Loading questions...</p>
+            </section>
+          )}
 
-        {!loading && !error && (
-        <section className="grid gap-4 sm:gap-5">
-            {questions.map((q, i) => (
-              (() => {
+          {error && (
+            <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900 dark:bg-red-950">
+              <p className="text-sm text-red-700 dark:text-red-200">Failed to load questions: {error}</p>
+            </section>
+          )}
+
+          {!loading && !error && (
+            <section className="grid gap-4 sm:gap-5">
+              {questions.map((q, i) => {
                 const questionKey = getQuestionKey(q, i);
                 const multiple = isMultipleChoice(q);
                 const selected = selectedAnswers[questionKey] || [];
@@ -200,11 +310,37 @@ export default function Practice() {
                     )}
                   </article>
                 );
-              })()
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
+              })}
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Requested page {pagination.requestedPage} | Effective page {pagination.effectivePage}
+                    {pagination.didWindowRollover ? ' (window rollover)' : ''}
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={goToPrevPage}
+                      disabled={loading || !level || (!pagination.hasPrevWindow && pagination.effectivePage <= 1)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={goToNextPage}
+                      disabled={loading || !level || (!pagination.hasNextWindow && pagination.effectivePage >= pagination.totalPagesInWindow)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </section>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

@@ -115,3 +115,26 @@ export async function updateStatus(pk: string, sk: string, status: string) {
     ExpressionAttributeValues: { ':s': status, ':p': new Date().toISOString() }
   }));
 }
+
+export async function updateQuestionCorrectAnswers(
+  key: TableKey,
+  correctAnswers: string[],
+  updatedAt: string
+): Promise<void> {
+  await ddb.send(new UpdateCommand({
+    TableName: tableName,
+    Key: key,
+    ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK) AND #entityType = :entityType',
+    UpdateExpression: 'SET #correctAnswers = :correctAnswers, #updatedAt = :updatedAt',
+    ExpressionAttributeNames: {
+      '#entityType': 'entityType',
+      '#correctAnswers': 'correctAnswers',
+      '#updatedAt': 'updatedAt'
+    },
+    ExpressionAttributeValues: {
+      ':entityType': 'QUESTION',
+      ':correctAnswers': correctAnswers,
+      ':updatedAt': updatedAt
+    }
+  }));
+}

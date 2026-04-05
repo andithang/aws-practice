@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import ThemeToggle from '../../components/ThemeToggle';
 import { loginAdmin } from '../../lib/admin-api';
@@ -34,8 +35,12 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+    <>
+      <Head>
+        <title>AWS Practice | Admin Login</title>
+      </Head>
+      <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
         <header className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Admin access</p>
@@ -80,7 +85,8 @@ export default function AdminLogin() {
             <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
           </section>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

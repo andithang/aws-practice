@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import ThemeToggle from '../../components/ThemeToggle';
 import {
@@ -113,19 +114,28 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-sm text-slate-600 dark:text-slate-300">Loading batches...</p>
-          </section>
-        </div>
-      </main>
+      <>
+        <Head>
+          <title>AWS Practice | Admin Batches</title>
+        </Head>
+        <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-5xl">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-sm text-slate-600 dark:text-slate-300">Loading batches...</p>
+            </section>
+          </div>
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <>
+      <Head>
+        <title>AWS Practice | Admin Batches</title>
+      </Head>
+      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Admin dashboard</p>
@@ -224,7 +234,8 @@ export default function Admin() {
               })}
           </ul>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

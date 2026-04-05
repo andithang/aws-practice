@@ -18,6 +18,8 @@ type QuestionRecord = {
   stem?: string;
   explanation?: string;
   examStyle?: string;
+  options?: Array<{ key: string; text: string }>;
+  correctAnswers?: string[];
   isPublished?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -69,6 +71,24 @@ function toQuestionRecord(item: Record<string, unknown>): QuestionRecord | null 
   if (typeof pk !== 'string' || typeof sk !== 'string' || typeof entityType !== 'string') return null;
   if (entityType !== 'QUESTION') return null;
 
+  const options = Array.isArray(item.options)
+    ? item.options
+        .map((option) => {
+          if (!option || typeof option !== 'object') return null;
+          const key = (option as { key?: unknown }).key;
+          const text = (option as { text?: unknown }).text;
+          if (typeof key !== 'string' || typeof text !== 'string') return null;
+          return { key, text };
+        })
+        .filter((option): option is { key: string; text: string } => option !== null)
+    : [];
+
+  const correctAnswers = Array.isArray(item.correctAnswers)
+    ? item.correctAnswers
+        .map((answer) => (typeof answer === 'string' ? answer : ''))
+        .filter((answer) => answer.length > 0)
+    : [];
+
   return {
     PK: pk,
     SK: sk,
@@ -81,6 +101,8 @@ function toQuestionRecord(item: Record<string, unknown>): QuestionRecord | null 
     stem: typeof item.stem === 'string' ? item.stem : '',
     explanation: typeof item.explanation === 'string' ? item.explanation : '',
     examStyle: typeof item.examStyle === 'string' ? item.examStyle : '',
+    options,
+    correctAnswers,
     isPublished: Boolean(item.isPublished),
     createdAt: typeof item.createdAt === 'string' ? item.createdAt : '',
     updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : ''
@@ -197,6 +219,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         stem: question.stem,
         explanation: question.explanation,
         examStyle: question.examStyle,
+        options: question.options || [],
+        correctAnswers: question.correctAnswers || [],
         isPublished: Boolean(question.isPublished),
         createdAt: question.createdAt,
         updatedAt: question.updatedAt

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useState } from 'react';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -10,6 +11,7 @@ import {
   AdminUnauthorizedError,
   listAdminBatches,
   listAdminQuestions,
+  updateAdminQuestionAnswer,
   updateAdminQuestionsStatus
 } from '../../lib/admin-api';
 import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
@@ -58,6 +60,9 @@ export default function AdminQuestionsPage() {
   const [error, setError] = useState('');
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [pendingAction, setPendingAction] = useState<AdminQuestionAction | ''>('');
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [editingAnswers, setEditingAnswers] = useState<string[]>([]);
+  const [savingAnswerId, setSavingAnswerId] = useState<string | null>(null);
 
   const batchOptions = useMemo(
     () =>
@@ -187,6 +192,68 @@ export default function AdminQuestionsPage() {
     }
   }
 
+  function isMultiSelect(question: AdminQuestion): boolean {
+    if (question.correctAnswers.length > 1) return true;
+    return question.examStyle.toLowerCase().includes('multi');
+  }
+
+  function beginAnswerEdit(question: AdminQuestion): void {
+    setEditingQuestionId(question.id);
+    setEditingAnswers(question.correctAnswers);
+  }
+
+  function cancelAnswerEdit(): void {
+    setEditingQuestionId(null);
+    setEditingAnswers([]);
+  }
+
+  function toggleEditingAnswer(question: AdminQuestion, optionKey: string): void {
+    const multiple = isMultiSelect(question);
+    setEditingAnswers((previous) => {
+      if (!multiple) return [optionKey];
+      if (previous.includes(optionKey)) {
+        return previous.filter((answer) => answer !== optionKey);
+      }
+      return [...previous, optionKey];
+    });
+  }
+
+  async function saveAnswerEdit(question: AdminQuestion): Promise<void> {
+    const multiple = isMultiSelect(question);
+    if (!multiple && editingAnswers.length !== 1) {
+      setError('Single-select questions require exactly one correct answer.');
+      return;
+    }
+
+    if (multiple && editingAnswers.length < 1) {
+      setError('Multi-select questions require at least one correct answer.');
+      return;
+    }
+
+    setSavingAnswerId(question.id);
+    setError('');
+
+    try {
+      await updateAdminQuestionAnswer(question.id, editingAnswers);
+      await loadQuestions(
+        pagination.effectivePage,
+        pagination.effectiveWindow,
+        pagination.size,
+        filtersApplied
+      );
+      cancelAnswerEdit();
+    } catch (err) {
+      if (err instanceof AdminUnauthorizedError) {
+        goToLogin();
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Answer update failed';
+      setError(message);
+    } finally {
+      setSavingAnswerId(null);
+    }
+  }
+
   function applyFilters(): void {
     void loadQuestions(1, 0, pagination.size, filtersDraft);
   }
@@ -213,7 +280,8 @@ export default function AdminQuestionsPage() {
 
     if (pagination.hasPrevWindow) {
       const previousWindow = Math.max(0, pagination.effectiveWindow - 1);
-      void loadQuestions(1, previousWindow, pagination.size, filtersApplied);
+      const lastPageOfPreviousWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+      void loadQuestions(lastPageOfPreviousWindow, previousWindow, pagination.size, filtersApplied);
     }
   }
 
@@ -246,6 +314,10 @@ export default function AdminQuestionsPage() {
     questions.length > 0 && questions.every((question) => selectedQuestionIds.includes(question.id));
 
   return (
+    <>
+      <Head>
+        <title>AWS Practice | Admin Questions</title>
+      </Head>
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
@@ -407,14 +479,14 @@ export default function AdminQuestionsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => updateQuestions('publish', selectedQuestionIds)}
-                disabled={selectedQuestionIds.length === 0 || pendingAction !== ''}
+                disabled={selectedQuestionIds.length === 0 || pendingAction !== '' || editingQuestionId !== null}
                 className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {pendingAction === 'publish' ? 'Publishing...' : `Publish selected (${selectedQuestionIds.length})`}
               </button>
               <button
                 onClick={() => updateQuestions('deprecate', selectedQuestionIds)}
-                disabled={selectedQuestionIds.length === 0 || pendingAction !== ''}
+                disabled={selectedQuestionIds.length === 0 || pendingAction !== '' || editingQuestionId !== null}
                 className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {pendingAction === 'deprecate' ? 'Deprecating...' : `Deprecate selected (${selectedQuestionIds.length})`}
@@ -446,59 +518,121 @@ export default function AdminQuestionsPage() {
                     <th className="px-3 py-2">Batch</th>
                     <th className="px-3 py-2">Created</th>
                     <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Correct answers</th>
                     <th className="px-3 py-2">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {questions.map((question) => (
-                    <tr key={question.id} className="border-b border-slate-100 align-top dark:border-slate-800">
-                      <td className="px-3 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedQuestionIds.includes(question.id)}
-                          onChange={() => toggleSelectedQuestion(question.id)}
-                          aria-label={`Select question ${question.questionId}`}
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className="font-semibold text-slate-900 dark:text-white">{question.questionId}</p>
-                        <p className="mt-1 text-slate-600 dark:text-slate-300">{question.stem}</p>
-                      </td>
-                      <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.level}</td>
-                      <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.batchId}</td>
-                      <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.createdAt}</td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                            question.isPublished
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200'
-                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200'
-                          }`}
-                        >
-                          {question.isPublished ? 'published' : 'deprecated'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        {question.isPublished ? (
-                          <button
-                            onClick={() => updateQuestions('deprecate', [question.id])}
-                            disabled={pendingAction !== ''}
-                            className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  {questions.map((question) => {
+                    const isEditing = editingQuestionId === question.id;
+                    const isMulti = isMultiSelect(question);
+
+                    return (
+                      <tr key={question.id} className="border-b border-slate-100 align-top dark:border-slate-800">
+                        <td className="px-3 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestionIds.includes(question.id)}
+                            onChange={() => toggleSelectedQuestion(question.id)}
+                            aria-label={`Select question ${question.questionId}`}
+                          />
+                        </td>
+                        <td className="px-3 py-3">
+                          <p className="font-semibold text-slate-900 dark:text-white">{question.questionId}</p>
+                          <p className="mt-1 text-slate-600 dark:text-slate-300">{question.stem}</p>
+                        </td>
+                        <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.level}</td>
+                        <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.batchId}</td>
+                        <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.createdAt}</td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                              question.isPublished
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200'
+                            }`}
                           >
-                            Deprecate
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => updateQuestions('publish', [question.id])}
-                            disabled={pendingAction !== ''}
-                            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Publish
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                            {question.isPublished ? 'published' : 'deprecated'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                                {isMulti ? 'Multi-select' : 'Single-select'}
+                              </p>
+                              <div className="space-y-1">
+                                {question.options.map((option) => (
+                                  <label
+                                    key={option.key}
+                                    className="flex cursor-pointer items-center gap-2 text-xs text-slate-700 dark:text-slate-200"
+                                  >
+                                    <input
+                                      type={isMulti ? 'checkbox' : 'radio'}
+                                      name={`answer-${question.id}`}
+                                      checked={editingAnswers.includes(option.key)}
+                                      onChange={() => toggleEditingAnswer(question, option.key)}
+                                    />
+                                    <span>
+                                      {option.key}. {option.text}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => saveAnswerEdit(question)}
+                                  disabled={savingAnswerId === question.id || pendingAction !== ''}
+                                  className="rounded-lg bg-brand-600 px-2 py-1 text-xs font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {savingAnswerId === question.id ? 'Saving...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={cancelAnswerEdit}
+                                  disabled={savingAnswerId === question.id || pendingAction !== ''}
+                                  className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-xs text-slate-700 dark:text-slate-200">
+                                {question.correctAnswers.length > 0 ? question.correctAnswers.join(', ') : '-'}
+                              </p>
+                              <button
+                                onClick={() => beginAnswerEdit(question)}
+                                disabled={pendingAction !== '' || editingQuestionId !== null}
+                                className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                              >
+                                Edit answers
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-3">
+                          {question.isPublished ? (
+                            <button
+                              onClick={() => updateQuestions('deprecate', [question.id])}
+                              disabled={pendingAction !== '' || editingQuestionId !== null}
+                              className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Deprecate
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => updateQuestions('publish', [question.id])}
+                              disabled={pendingAction !== '' || editingQuestionId !== null}
+                              className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Publish
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -513,14 +647,24 @@ export default function AdminQuestionsPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPrevPage}
-                disabled={loading || pendingAction !== '' || (!pagination.hasPrevWindow && pagination.effectivePage <= 1)}
+                disabled={
+                  loading ||
+                  pendingAction !== '' ||
+                  editingQuestionId !== null ||
+                  (!pagination.hasPrevWindow && pagination.effectivePage <= 1)
+                }
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Previous
               </button>
               <button
                 onClick={goToNextPage}
-                disabled={loading || pendingAction !== '' || (!pagination.hasNextWindow && pagination.effectivePage >= pagination.totalPagesInWindow)}
+                disabled={
+                  loading ||
+                  pendingAction !== '' ||
+                  editingQuestionId !== null ||
+                  (!pagination.hasNextWindow && pagination.effectivePage >= pagination.totalPagesInWindow)
+                }
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 Next
@@ -530,5 +674,6 @@ export default function AdminQuestionsPage() {
         </section>
       </div>
     </main>
+    </>
   );
 }
