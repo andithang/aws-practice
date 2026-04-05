@@ -49,6 +49,13 @@ const defaultPagination: AdminQuestionsPagination = {
   totalPagesInWindow: 0
 };
 
+function formatClientDateTime(value: string | undefined): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
 export default function AdminQuestionsPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
@@ -280,12 +287,20 @@ export default function AdminQuestionsPage() {
 
     if (pagination.hasPrevWindow) {
       const previousWindow = Math.max(0, pagination.effectiveWindow - 1);
-      const lastPageOfPreviousWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+      const previousWindowStart = previousWindow * pagination.windowSize;
+      const previousWindowCount = Math.max(
+        0,
+        Math.min(pagination.windowSize, pagination.totalFiltered - previousWindowStart)
+      );
+      const lastPageOfPreviousWindow =
+        previousWindowCount > 0 ? Math.ceil(previousWindowCount / pagination.size) : 1;
       void loadQuestions(lastPageOfPreviousWindow, previousWindow, pagination.size, filtersApplied);
     }
   }
 
   function goToNextPage(): void {
+    const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+
     if (pagination.effectivePage < pagination.totalPagesInWindow) {
       void loadQuestions(
         pagination.effectivePage + 1,
@@ -298,7 +313,7 @@ export default function AdminQuestionsPage() {
 
     if (pagination.hasNextWindow) {
       void loadQuestions(
-        pagination.totalPagesInWindow + 1,
+        pagesPerWindow + 1,
         pagination.effectiveWindow,
         pagination.size,
         filtersApplied
@@ -312,15 +327,18 @@ export default function AdminQuestionsPage() {
 
   const allCurrentSelected =
     questions.length > 0 && questions.every((question) => selectedQuestionIds.includes(question.id));
+  const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+  const globalEffectivePage = pagination.effectiveWindow * pagesPerWindow + pagination.effectivePage;
+  const globalRequestedPage = pagination.requestedWindow * pagesPerWindow + pagination.requestedPage;
 
   return (
     <>
       <Head>
         <title>AWS Practice | Admin Questions</title>
       </Head>
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 sm:gap-6">
+        <header className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Admin dashboard</p>
             <h1 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Questions Management</h1>
@@ -350,12 +368,12 @@ export default function AdminQuestionsPage() {
         </header>
 
         {error && (
-          <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900 dark:bg-red-950">
+          <section className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-900 dark:bg-red-950 sm:p-5">
             <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
           </section>
         )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-slate-700 dark:text-slate-200">Level</span>
@@ -467,12 +485,12 @@ export default function AdminQuestionsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white">Questions</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {pagination.totalFiltered} matched • window {pagination.effectiveWindow + 1} • page {pagination.effectivePage}
+                {pagination.totalFiltered} matched | window {pagination.effectiveWindow + 1} | page {globalEffectivePage}
               </p>
             </div>
 
@@ -518,7 +536,7 @@ export default function AdminQuestionsPage() {
                     <th className="px-3 py-2">Batch</th>
                     <th className="px-3 py-2">Created</th>
                     <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Correct answers</th>
+                    <th className="min-w-[18rem] px-3 py-2">Correct answers</th>
                     <th className="px-3 py-2">Action</th>
                   </tr>
                 </thead>
@@ -543,8 +561,10 @@ export default function AdminQuestionsPage() {
                         </td>
                         <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.level}</td>
                         <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.batchId}</td>
-                        <td className="px-3 py-3 text-slate-700 dark:text-slate-200">{question.createdAt}</td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-slate-700 dark:text-slate-200">
+                          {formatClientDateTime(question.createdAt)}
+                        </td>
+                        <td className="min-w-[18rem] px-3 py-3">
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-semibold ${
                               question.isPublished
@@ -640,7 +660,7 @@ export default function AdminQuestionsPage() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Requested page {pagination.requestedPage} • Effective page {pagination.effectivePage}
+              Requested page {globalRequestedPage} | Effective page {globalEffectivePage}
               {pagination.didWindowRollover && ' (window rollover)'}
             </div>
 
@@ -677,3 +697,4 @@ export default function AdminQuestionsPage() {
     </>
   );
 }
+

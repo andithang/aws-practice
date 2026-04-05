@@ -11,6 +11,7 @@ type Question = {
   questionId?: string;
   examStyle?: string;
   stem: string;
+  createdAt?: string;
   explanation?: string;
   options?: Option[];
   correctAnswers?: string[];
@@ -51,6 +52,13 @@ function parseSelectedLevel(value: string | string[] | undefined): Level | undef
   if (!value || Array.isArray(value)) return undefined;
   if ((validLevels as string[]).includes(value)) return value as Level;
   return undefined;
+}
+
+function formatClientDateTime(value: string | undefined): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
 
 export default function Practice() {
@@ -157,13 +165,20 @@ export default function Practice() {
 
     if (pagination.hasPrevWindow) {
       const previousWindow = Math.max(0, pagination.effectiveWindow - 1);
-      const lastPageOfPreviousWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+      const previousWindowStart = previousWindow * pagination.windowSize;
+      const previousWindowCount = Math.max(
+        0,
+        Math.min(pagination.windowSize, pagination.totalFiltered - previousWindowStart)
+      );
+      const lastPageOfPreviousWindow =
+        previousWindowCount > 0 ? Math.ceil(previousWindowCount / pagination.size) : 1;
       void loadQuestions(level, lastPageOfPreviousWindow, previousWindow, pagination.size);
     }
   }
 
   function goToNextPage(): void {
     if (!level) return;
+    const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
 
     if (pagination.effectivePage < pagination.totalPagesInWindow) {
       void loadQuestions(level, pagination.effectivePage + 1, pagination.effectiveWindow, pagination.size);
@@ -173,7 +188,7 @@ export default function Practice() {
     if (pagination.hasNextWindow) {
       void loadQuestions(
         level,
-        pagination.totalPagesInWindow + 1,
+        pagesPerWindow + 1,
         pagination.effectiveWindow,
         pagination.size
       );
@@ -185,14 +200,18 @@ export default function Practice() {
     void loadQuestions(level, 1, 0, size);
   }
 
+  const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
+  const globalEffectivePage = pagination.effectiveWindow * pagesPerWindow + pagination.effectivePage;
+  const globalRequestedPage = pagination.requestedWindow * pagesPerWindow + pagination.requestedPage;
+
   return (
     <>
       <Head>
         <title>AWS Practice | Practice</title>
       </Head>
-      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-          <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+      <main className="min-h-screen px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
+          <header className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Practice session</p>
               <h1 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Practice ({level || '-'})</h1>
@@ -208,10 +227,10 @@ export default function Practice() {
             </div>
           </header>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {pagination.totalFiltered} published questions in this level | window {pagination.effectiveWindow + 1} | page {pagination.effectivePage}
+                {pagination.totalFiltered} published questions in this level | window {pagination.effectiveWindow + 1} | page {globalEffectivePage}
               </p>
               <label className="text-sm">
                 <span className="mr-2 text-slate-600 dark:text-slate-300">Page size</span>
@@ -231,19 +250,19 @@ export default function Practice() {
           </section>
 
           {loading && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
               <p className="text-sm text-slate-600 dark:text-slate-300">Loading questions...</p>
             </section>
           )}
 
           {error && (
-            <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900 dark:bg-red-950">
+            <section className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm dark:border-red-900 dark:bg-red-950 sm:p-5">
               <p className="text-sm text-red-700 dark:text-red-200">Failed to load questions: {error}</p>
             </section>
           )}
 
           {!loading && !error && (
-            <section className="grid gap-4 sm:gap-5">
+            <section className="grid gap-3 sm:gap-5">
               {questions.map((q, i) => {
                 const questionKey = getQuestionKey(q, i);
                 const multiple = isMultipleChoice(q);
@@ -254,12 +273,15 @@ export default function Practice() {
                 return (
                   <article
                     key={questionKey}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:p-5"
                   >
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                       <span className="mr-2 text-brand-600 dark:text-brand-500">#{i + 1}</span>
                       {q.stem}
                     </h2>
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      Created: {formatClientDateTime(q.createdAt)}
+                    </p>
 
                     <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {multiple ? 'Multiple answers' : 'Single answer'}
@@ -312,10 +334,10 @@ export default function Practice() {
                 );
               })}
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Requested page {pagination.requestedPage} | Effective page {pagination.effectivePage}
+                    Requested page {globalRequestedPage} | Effective page {globalEffectivePage}
                     {pagination.didWindowRollover ? ' (window rollover)' : ''}
                   </p>
 
