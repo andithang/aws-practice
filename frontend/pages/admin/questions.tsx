@@ -531,7 +531,7 @@ export default function AdminQuestionsPage() {
                         aria-label="Select all questions on this page"
                       />
                     </th>
-                    <th className="px-3 py-2">Question</th>
+                    <th className="min-w-[18rem] px-3 py-2">Question</th>
                     <th className="px-3 py-2">Level</th>
                     <th className="px-3 py-2">Batch</th>
                     <th className="px-3 py-2">Created</th>
@@ -555,7 +555,7 @@ export default function AdminQuestionsPage() {
                             aria-label={`Select question ${question.questionId}`}
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="min-w-[18rem] px-3 py-3">
                           <p className="font-semibold text-slate-900 dark:text-white">{question.questionId}</p>
                           <p className="mt-1 text-slate-600 dark:text-slate-300">{question.stem}</p>
                         </td>
