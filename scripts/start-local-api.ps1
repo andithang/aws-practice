@@ -1,5 +1,5 @@
 param(
-  [int]$Port = 3001,
+  [int]$Port = 3002,
   [string]$Region = "ap-southeast-1"
 )
 
@@ -16,4 +16,4 @@ Write-Host "Building SAM application..."
 sam build
 
 Write-Host "Starting local API on http://127.0.0.1:$Port ..."
-sam local start-api --env-vars env.local.json --port $Port
+sam local start-api --env-vars env.local.json --parameter-overrides "CorsAllowedOrigin=http://localhost:3000" --port $Port

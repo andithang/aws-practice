@@ -72,7 +72,7 @@ export default function Practice() {
   const [pagination, setPagination] = useState<Pagination>(defaultPagination);
 
   function getQuestionKey(question: Question, index: number): string {
-    return question.questionId || `question-${index}`;
+    return question.questionId ? `${question.questionId}_${question.createdAt}` : `question-${index}`;
   }
 
   function isMultipleChoice(question: Question): boolean {

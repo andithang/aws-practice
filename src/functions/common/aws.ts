@@ -8,6 +8,7 @@ import {
   UpdateCommand
 } from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { logInfo } from './log';
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const secrets = new SecretsManagerClient({});
@@ -35,6 +36,8 @@ export async function queryByPk(pk: string) {
 export async function queryAllByPk(pk: string, scanIndexForward = true): Promise<Record<string, unknown>[]> {
   const items: Record<string, unknown>[] = [];
   let lastEvaluatedKey: Record<string, unknown> | undefined;
+
+  logInfo(`Querying items with PK=${pk}, scanIndexForward=${scanIndexForward} with table ${tableName}`);
 
   do {
     const output = await ddb.send(new QueryCommand({

@@ -1,5 +1,5 @@
 param(
-  [string]$ApiBase = "http://127.0.0.1:3001",
+  [string]$ApiBase = "http://127.0.0.1:3002",
   [string]$AdminToken = "",
   [switch]$RunMutations
 )

@@ -53,7 +53,7 @@ Local API runs in SAM Docker, but still calls your real AWS resources (DynamoDB 
 .\scripts\start-local-api.ps1
 ```
 
-Default URL: `http://127.0.0.1:3001`
+Default URL: `http://127.0.0.1:3002`
 
 ### 3) Smoke-test endpoints
 
@@ -70,7 +70,7 @@ Optional (will generate new question batches):
 ### 4) Point frontend to local API
 
 ```powershell
-$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:3001"
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:3002"
 cd frontend
 npm run dev
 ```
