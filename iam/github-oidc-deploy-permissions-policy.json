@@ -10,6 +10,7 @@
         "cloudformation:DeleteChangeSet",
         "cloudformation:DeleteStack",
         "cloudformation:DescribeChangeSet",
+        "cloudformation:DescribeStackDriftDetectionStatus",
         "cloudformation:DescribeStackEvents",
         "cloudformation:DescribeStackResource",
         "cloudformation:DescribeStackResources",
@@ -17,6 +18,8 @@
         "cloudformation:ExecuteChangeSet",
         "cloudformation:GetTemplate",
         "cloudformation:GetTemplateSummary",
+        "cloudformation:ListChangeSets",
+        "cloudformation:ListStacks",
         "cloudformation:ListStackResources",
         "cloudformation:UpdateStack",
         "cloudformation:ValidateTemplate"
@@ -28,6 +31,7 @@
       "Effect": "Allow",
       "Action": [
         "s3:GetBucketLocation",
+        "s3:GetBucketVersioning",
         "s3:ListBucket"
       ],
       "Resource": "arn:aws:s3:::<S3_ARTIFACTS_BUCKET>"
@@ -42,6 +46,7 @@
         "s3:GetObjectVersion",
         "s3:ListBucketMultipartUploads",
         "s3:ListMultipartUploadParts",
+        "s3:PutObjectAcl",
         "s3:PutObject"
       ],
       "Resource": "arn:aws:s3:::<S3_ARTIFACTS_BUCKET>/*"
@@ -63,6 +68,8 @@
         "iam:PassRole",
         "iam:PutRolePolicy",
         "iam:TagRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:UpdateRole",
         "iam:UntagRole"
       ],
       "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/<STACK_NAME>*"
@@ -78,6 +85,8 @@
         "lambda:GetFunctionConfiguration",
         "lambda:GetPolicy",
         "lambda:ListTags",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
         "lambda:RemovePermission",
         "lambda:TagResource",
         "lambda:UntagResource",
@@ -99,29 +108,33 @@
       "Resource": "*"
     },
     {
-      "Sid": "DynamoDbTableDeploy",
+      "Sid": "DynamoDbQuestionsTableDeploy",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
-				"dynamodb:UpdateTimeToLive",
+        "dynamodb:DescribeTimeToLive",
         "dynamodb:DeleteTable",
         "dynamodb:DescribeTable",
+        "dynamodb:ListTagsOfResource",
         "dynamodb:TagResource",
         "dynamodb:UntagResource",
+        "dynamodb:UpdateTimeToLive",
         "dynamodb:UpdateTable"
       ],
       "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_questions*"
     },
     {
-      "Sid": "DynamoDbTableDeploy",
+      "Sid": "DynamoDbDevicesTableDeploy",
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
-				"dynamodb:UpdateTimeToLive",
+        "dynamodb:DescribeTimeToLive",
         "dynamodb:DeleteTable",
         "dynamodb:DescribeTable",
+        "dynamodb:ListTagsOfResource",
         "dynamodb:TagResource",
         "dynamodb:UntagResource",
+        "dynamodb:UpdateTimeToLive",
         "dynamodb:UpdateTable"
       ],
       "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_devices*"
@@ -135,6 +148,7 @@
         "secretsmanager:DescribeSecret",
         "secretsmanager:GetSecretValue",
         "secretsmanager:PutSecretValue",
+        "secretsmanager:RestoreSecret",
         "secretsmanager:TagResource",
         "secretsmanager:UntagResource",
         "secretsmanager:UpdateSecret"
