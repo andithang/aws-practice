@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
-import { apiUrl } from '../lib/api';
+import { apiRequest } from '../lib/api-client';
 
 type Level = 'practitioner' | 'associate' | 'professional';
 type Option = { key: string; text: string };
@@ -119,7 +119,7 @@ export default function Practice() {
         window: String(window)
       });
 
-      const res = await fetch(apiUrl(`/api/practice/questions?${params.toString()}`));
+      const res = await apiRequest(`/api/practice/questions?${params.toString()}`);
       if (!res.ok) throw new Error(`Failed with status ${res.status}`);
 
       const data = (await res.json()) as {

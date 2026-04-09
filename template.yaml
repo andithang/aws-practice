@@ -9,6 +9,9 @@ Parameters:
   CorsAllowedOrigin:
     Type: String
     Default: https://aws-practice.andithang.org
+  DeviceTableName:
+    Type: String
+    Default: aws_exam_devices
 
 Globals:
   Function:
@@ -20,6 +23,7 @@ Globals:
     Environment:
       Variables:
         TABLE_NAME: !Ref QuestionsTable
+        DEVICE_TABLE_NAME: !Ref DevicesTable
         GEMINI_MODEL: !Ref GeminiModel
         ADMIN_TOKEN_SECRET_ID: !Ref AdminTokenSecret
         GEMINI_API_KEY_SECRET_ID: !Ref GeminiApiKeySecret
@@ -33,7 +37,7 @@ Resources:
       Cors:
         AllowOrigin: !Sub "'${CorsAllowedOrigin}'"
         AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        AllowHeaders: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
         AllowCredentials: true
       Auth:
         ApiKeyRequired: false
@@ -45,7 +49,7 @@ Resources:
       ResponseType: DEFAULT_4XX
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
         gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
 
@@ -56,7 +60,7 @@ Resources:
       ResponseType: DEFAULT_5XX
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
-        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
         gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
 
@@ -75,6 +79,25 @@ Resources:
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
+
+  DevicesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DeviceTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   AdminTokenSecret:
     Type: AWS::SecretsManager::Secret
@@ -129,6 +152,8 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
       Events:
         GetPracticeQuestions:
           Type: Api
@@ -142,12 +167,35 @@ Resources:
         EntryPoints:
           - practice-questions/handler.ts
 
+  DeviceSeedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: device-seed/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+      Events:
+        DeviceSeed:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/device/seed
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - device-seed/handler.ts
+
   AdminLoginFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: src/functions
       Handler: admin-login/handler.handler
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -175,6 +223,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -203,6 +253,8 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -229,6 +281,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -255,6 +309,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -281,6 +337,8 @@ Resources:
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -307,6 +365,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:
@@ -333,6 +393,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
         - Statement:
             - Effect: Allow
               Action:

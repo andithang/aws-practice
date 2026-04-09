@@ -1,5 +1,5 @@
-import { apiUrl } from './api';
 import { clearAdminToken, getAdminToken } from './admin-auth';
+import { apiRequest } from './api-client';
 
 export type AdminBatch = {
   batchId: string;
@@ -80,11 +80,7 @@ async function adminRequest(path: string, init: RequestInit = {}): Promise<Respo
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(apiUrl(path), {
+  const response = await apiRequest(path, {
     ...init,
     headers
   });
@@ -98,7 +94,7 @@ async function adminRequest(path: string, init: RequestInit = {}): Promise<Respo
 }
 
 export async function loginAdmin(token: string): Promise<boolean> {
-  const response = await fetch(apiUrl('/api/admin/login'), {
+  const response = await apiRequest('/api/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: token.trim() })

@@ -5,6 +5,7 @@
     "build:functions": "echo 'Build handled by sam build with esbuild'",
     "validate": "sam validate",
     "build:frontend": "cd frontend && npm run build",
+    "test": "vitest run",
     "lint": "eslint \"**/*.{ts,tsx,json,html}\"",
     "prepare": "husky"
   },
@@ -24,6 +25,7 @@
     "husky": "^9.1.7",
     "jsonc-eslint-parser": "^2.4.1",
     "lint-staged": "^16.2.6",
+    "vitest": "^2.1.9",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.46.1"
   },

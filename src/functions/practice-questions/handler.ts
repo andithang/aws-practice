@@ -1,7 +1,8 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
+import { validateDeviceForEvent } from '../common/device';
 import { queryAllByPk } from '../common/aws';
 import { json } from '../common/http';
-import { errorLogFields, logError, logInfo } from '../common/log';
+import { errorLogFields, logError, logInfo, logWarn } from '../common/log';
 import { Level } from '../common/types';
 
 const levels: Level[] = ['practitioner', 'associate', 'professional'];
@@ -46,6 +47,12 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   logInfo('Request received', requestFields);
 
   try {
+    const deviceValidation = await validateDeviceForEvent(event);
+    if (!deviceValidation.ok) {
+      logWarn('Device validation failed', { ...requestFields, message: deviceValidation.message });
+      return json(deviceValidation.statusCode, { message: deviceValidation.message });
+    }
+
     const query = event.queryStringParameters || {};
     const rawLevel = query.level;
     const requestedLevel = parseLevel(rawLevel);

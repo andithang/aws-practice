@@ -112,6 +112,19 @@
       "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_questions*"
     },
     {
+      "Sid": "DynamoDbTableDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource",
+        "dynamodb:UpdateTable"
+      ],
+      "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_devices*"
+    },
+    {
       "Sid": "SecretsManagerDeploy",
       "Effect": "Allow",
       "Action": [

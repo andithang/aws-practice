@@ -7,8 +7,9 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 - **Scheduled generation (every 8 hours)**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
 - **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
+- **Device bootstrap**: `POST /api/device/seed` issues a browser-scoped seed used to derive the `X-Device-Id` header required by every HTTP API route.
 - **Frontend**: Next.js static export hosted on GitHub Pages.
-- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status` directly.
+- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status` directly, with the shared device header attached automatically.
 
 ## Core constraints implemented
 
@@ -17,9 +18,9 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 - Public practice FE only calls `/api/practice/questions`.
 - Random level selection occurs in Lambda for both generation and practice retrieval.
 
-## DynamoDB single-table
+## DynamoDB tables
 
-Table name: `aws_exam_questions`
+Question table: `aws_exam_questions`
 
 - Batch item:
   - `PK = LEVEL#{level}`
@@ -27,6 +28,13 @@ Table name: `aws_exam_questions`
 - Question item:
   - `PK = LEVEL#{level}`
   - `SK = DATE#{yyyy-mm-dd}#Q#{questionNumber}#BATCH#{batchId}`
+
+Device table: `aws_exam_devices`
+
+- Device item:
+  - `PK = DEVICE#{deviceId}`
+  - `SK = METADATA`
+  - TTL attribute: `ttl`
 
 ## Deploy
 
@@ -36,6 +44,7 @@ sam deploy --guided
 ```
 
 Frontend deploy is handled by GitHub Actions to GitHub Pages (`frontend/out`).
+Frontend API calls are direct to `NEXT_PUBLIC_API_BASE_URL` (AWS API Gateway). There is no Next.js backend proxy/fallback.
 
 ## Run APIs locally
 
@@ -44,7 +53,7 @@ Local API runs in SAM Docker, but still calls your real AWS resources (DynamoDB 
 ### 1) Prepare local config
 
 1. Copy `env.local.json.example` to `env.local.json` (already created in this repo).
-2. Update values in `env.local.json` if your table/secret IDs differ.
+2. Update values in `env.local.json` if your table/secret IDs differ (`TABLE_NAME` and `DEVICE_TABLE_NAME`).
 3. Ensure AWS credentials are available locally (`aws configure` or `AWS_PROFILE`).
 
 ### 2) Start local API
@@ -67,6 +76,8 @@ Optional (will generate new question batches):
 .\scripts\smoke-local-api.ps1 -AdminToken "<your-admin-token>" -RunMutations
 ```
 
+The smoke script now validates the device bootstrap flow first, then retries practice and admin requests with `X-Device-Id`.
+
 ### 4) Point frontend to local API
 
 ```powershell
@@ -80,6 +91,8 @@ npm run dev
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
 - `GEMINI_API_KEY_SECRET_ID` -> Secrets Manager JSON `{ "apiKey": "..." }`
 - `ADMIN_TOKEN_SECRET_ID` -> Secrets Manager JSON `{ "token": "..." }`
+- `TABLE_NAME` (questions table, default `aws_exam_questions`)
+- `DEVICE_TABLE_NAME` (device table, default `aws_exam_devices`)
 - Frontend build env:
   - `NEXT_PUBLIC_API_BASE_URL`
 
