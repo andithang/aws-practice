@@ -103,6 +103,7 @@
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
+				"dynamodb:UpdateTimeToLive",
         "dynamodb:DeleteTable",
         "dynamodb:DescribeTable",
         "dynamodb:TagResource",
@@ -116,6 +117,7 @@
       "Effect": "Allow",
       "Action": [
         "dynamodb:CreateTable",
+				"dynamodb:UpdateTimeToLive",
         "dynamodb:DeleteTable",
         "dynamodb:DescribeTable",
         "dynamodb:TagResource",
