@@ -112,7 +112,6 @@ Resources:
       Description: Admin bearer token
       Type: String
       Value: !Ref AdminApiKeyValue
-      Overwrite: true  # Allows updates if parameter exists
 
   GeminiApiKeyParameter:
     Type: AWS::SSM::Parameter
@@ -121,7 +120,6 @@ Resources:
       Description: Gemini API key
       Type: String
       Value: !Ref GeminiApiKey
-      Overwrite: true  # Allows updates if parameter exists
 
   DailyGeneratorFunction:
     Type: AWS::Serverless::Function
