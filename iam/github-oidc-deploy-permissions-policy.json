@@ -140,31 +140,20 @@
       "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_devices*"
     },
     {
-      "Sid": "SecretsManagerDeploy",
+      "Sid": "SsmParameterDeploy",
       "Effect": "Allow",
       "Action": [
-        "secretsmanager:CreateSecret",
-        "secretsmanager:DeleteSecret",
-        "secretsmanager:DescribeSecret",
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:PutSecretValue",
-        "secretsmanager:RestoreSecret",
-        "secretsmanager:TagResource",
-        "secretsmanager:UntagResource",
-        "secretsmanager:UpdateSecret"
+        "ssm:AddTagsToResource",
+        "ssm:DeleteParameter",
+        "ssm:GetParameter",
+        "ssm:ListTagsForResource",
+        "ssm:PutParameter",
+        "ssm:RemoveTagsFromResource"
       ],
       "Resource": [
-        "arn:aws:secretsmanager:<AWS_REGION>:<ACCOUNT_ID>:secret:aws-exam-admin-token*",
-        "arn:aws:secretsmanager:<AWS_REGION>:<ACCOUNT_ID>:secret:aws-exam-gemini-api-key*"
+        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/aws-practice/admin-token",
+        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/aws-practice/gemini-api-key"
       ]
-    },
-    {
-      "Sid": "SecretsManagerGetRandomPassword",
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetRandomPassword"
-      ],
-      "Resource": "*"
     },
     {
       "Sid": "EventBridgeScheduleDeploy",

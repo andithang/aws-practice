@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { getSecretJson } from './aws';
+import { getParameterJson } from './aws';
 import { apiRequestLogFields, errorLogFields, logError, logInfo, logWarn } from './log';
 
 export interface AuthResult {
@@ -17,7 +17,7 @@ export async function validateAdminToken(event: APIGatewayProxyEvent): Promise<A
 
   try {
     const token = auth.replace('Bearer ', '').trim();
-    const secret = await getSecretJson(process.env.ADMIN_TOKEN_SECRET_ID!);
+    const secret = await getParameterJson(process.env.ADMIN_TOKEN_PARAMETER_NAME!);
     const isValid = token === secret.token;
 
     if (!isValid) {

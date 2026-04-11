@@ -7,18 +7,23 @@ import {
   TransactWriteCommand,
   UpdateCommand
 } from '@aws-sdk/lib-dynamodb';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { logInfo } from './log';
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-const secrets = new SecretsManagerClient({});
+const ssm = new SSMClient({});
 
 export const tableName = process.env.TABLE_NAME!;
 export type TableKey = { PK: string; SK: string };
 
-export async function getSecretJson(secretId: string): Promise<Record<string, string>> {
-  const out = await secrets.send(new GetSecretValueCommand({ SecretId: secretId }));
-  return JSON.parse(out.SecretString ?? '{}');
+export async function getParameterJson(parameterName: string): Promise<Record<string, string>> {
+  const out = await ssm.send(
+    new GetParameterCommand({
+      Name: parameterName,
+      WithDecryption: true
+    })
+  );
+  return JSON.parse(out.Parameter?.Value ?? '{}');
 }
 
 export async function putItem(item: Record<string, unknown>) {

@@ -1,6 +1,6 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { validateDeviceForEvent } from '../common/device';
-import { getSecretJson } from '../common/aws';
+import { getParameterJson } from '../common/aws';
 import { json } from '../common/http';
 import { apiRequestLogFields, errorLogFields, logError, logInfo, logWarn } from '../common/log';
 
@@ -20,7 +20,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       logWarn('Missing token in request body', requestFields);
     }
 
-    const secret = await getSecretJson(process.env.ADMIN_TOKEN_SECRET_ID!);
+    const secret = await getParameterJson(process.env.ADMIN_TOKEN_PARAMETER_NAME!);
     const ok = body.token && body.token === secret.token;
     logInfo('Login request evaluated', { ...requestFields, ok });
     return json(ok ? 200 : 401, { ok });

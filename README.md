@@ -6,7 +6,7 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 
 - **Scheduled generation (every 8 hours)**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
-- **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
+- **Admin API**: Bearer token validation in Lambda (token in SSM Parameter Store).
 - **Device bootstrap**: `POST /api/device/seed` issues a browser-scoped seed used to derive the `X-Device-Id` header required by every HTTP API route.
 - **Frontend**: Next.js static export hosted on GitHub Pages.
 - **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status`, `/api/admin/devices`, and `/api/admin/devices/{deviceId}` directly, with the shared device header attached automatically.
@@ -48,7 +48,7 @@ Frontend API calls are direct to `NEXT_PUBLIC_API_BASE_URL` (AWS API Gateway). T
 
 ## Run APIs locally
 
-Local API runs in SAM Docker, but still calls your real AWS resources (DynamoDB + Secrets Manager), so valid AWS credentials are required.
+Local API runs in SAM Docker, but still calls your real AWS resources (DynamoDB + SSM Parameter Store), so valid AWS credentials are required.
 
 ### 1) Prepare local config
 
@@ -89,8 +89,8 @@ npm run dev
 ## Required environment/secrets
 
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
-- `GEMINI_API_KEY_SECRET_ID` -> Secrets Manager JSON `{ "apiKey": "..." }`
-- `ADMIN_TOKEN_SECRET_ID` -> Secrets Manager JSON `{ "token": "..." }`
+- `GEMINI_API_KEY_PARAMETER_NAME` -> SSM parameter JSON `{ "apiKey": "..." }`
+- `ADMIN_TOKEN_PARAMETER_NAME` -> SSM parameter JSON `{ "token": "..." }`
 - `TABLE_NAME` (questions table, default `aws_exam_questions`)
 - `DEVICE_TABLE_NAME` (device table, default `aws_exam_devices`)
 - Frontend build env:

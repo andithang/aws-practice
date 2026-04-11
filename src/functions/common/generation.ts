@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { getSecretJson, putItem } from './aws';
+import { getParameterJson, putItem } from './aws';
 import { errorLogFields, logInfo, logWarn } from './log';
 import { ExamQuestion, GenerationPayload, Level } from './types';
 
@@ -125,7 +125,7 @@ function extractGeminiText(body: unknown): string | undefined {
 
 async function callGemini(level: Level): Promise<GenerationPayload> {
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const secret = await getSecretJson(process.env.GEMINI_API_KEY_SECRET_ID!);
+  const secret = await getParameterJson(process.env.GEMINI_API_KEY_PARAMETER_NAME!);
   const apiKey = process.env.GEMINI_API_KEY || secret.apiKey;
   const prompt = [
     'Task: Generate high-quality AWS certification practice questions.',
