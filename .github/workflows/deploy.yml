@@ -46,25 +46,11 @@ jobs:
             echo "Stack status is '$STACK_STATUS'. Continuing."
           fi
       - name: SAM deploy
-        shell: bash
         run: |
-          set -euo pipefail
-          if [ -z "${ADMIN_API_KEY_VALUE:-}" ]; then
-            echo "::error::Missing required secret ADMIN_API_KEY_VALUE"
-            exit 1
-          fi
-          if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "::error::Missing required secret GEMINI_API_KEY"
-            exit 1
-          fi
-
-          ADMIN_API_KEY_VALUE_CLEAN="$(printf '%s' "$ADMIN_API_KEY_VALUE" | tr -d '\r\n')"
-          GEMINI_API_KEY_CLEAN="$(printf '%s' "$GEMINI_API_KEY" | tr -d '\r\n')"
-
           sam deploy --s3-bucket "$S3_ARTIFACTS_BUCKET" --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
             GeminiModel="$GEMINI_MODEL" \
-            AdminApiKeyValue="$ADMIN_API_KEY_VALUE_CLEAN" \
-            GeminiApiKey="$GEMINI_API_KEY_CLEAN"
+            AdminApiKeyValue="$ADMIN_API_KEY_VALUE" \
+            GeminiApiKey="$GEMINI_API_KEY"
 
   deploy-frontend:
     runs-on: ubuntu-latest
