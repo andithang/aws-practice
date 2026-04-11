@@ -15,6 +15,8 @@ jobs:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
       SAM_STACK_NAME: ${{ secrets.SAM_STACK_NAME }}
       GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+      ADMIN_API_KEY_VALUE: ${{ secrets.ADMIN_API_KEY_VALUE }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       S3_ARTIFACTS_BUCKET: ${{ secrets.S3_ARTIFACTS_BUCKET }}
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +48,9 @@ jobs:
       - name: SAM deploy
         run: |
           sam deploy --s3-bucket "$S3_ARTIFACTS_BUCKET" --no-confirm-changeset --no-fail-on-empty-changeset --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --capabilities CAPABILITY_IAM --parameter-overrides \
-            GeminiModel="$GEMINI_MODEL"
+            GeminiModel="$GEMINI_MODEL" \
+            AdminApiKeyValue="$ADMIN_API_KEY_VALUE" \
+            GeminiApiKey="$GEMINI_API_KEY"
 
   deploy-frontend:
     runs-on: ubuntu-latest

@@ -6,6 +6,12 @@ Parameters:
   GeminiModel:
     Type: String
     Default: gemini-2.5-flash
+  AdminApiKeyValue:
+    Type: String
+    NoEcho: true
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
   CorsAllowedOrigin:
     Type: String
     Default: https://aws-practice.andithang.org
@@ -105,7 +111,7 @@ Resources:
       Name: !Sub /andithang-practice/${AWS::StackName}/admin-token
       Description: Admin bearer token
       Type: String
-      Value: change-me
+      Value: !Ref AdminApiKeyValue
 
   GeminiApiKeyParameter:
     Type: AWS::SSM::Parameter
@@ -113,7 +119,7 @@ Resources:
       Name: !Sub /andithang-practice/${AWS::StackName}/gemini-api-key
       Description: Gemini API key
       Type: String
-      Value: replace-in-console
+      Value: !Ref GeminiApiKey
 
   DailyGeneratorFunction:
     Type: AWS::Serverless::Function
