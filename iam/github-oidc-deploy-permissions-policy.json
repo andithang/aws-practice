@@ -151,8 +151,8 @@
         "ssm:RemoveTagsFromResource"
       ],
       "Resource": [
-        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/aws-practice/*/admin-token",
-        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/aws-practice/*/gemini-api-key"
+        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/config/aws-practice/*/admin-token",
+        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/config/aws-practice/*/gemini-api-key"
       ]
     },
     {

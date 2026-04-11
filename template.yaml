@@ -102,7 +102,7 @@ Resources:
   AdminTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /aws-practice/${AWS::StackName}/admin-token
+      Name: !Sub /config/aws-practice/${AWS::StackName}/admin-token
       Description: Admin token payload as JSON {"token":"..."}
       Type: String
       Value: '{"token":"change-me"}'
@@ -110,7 +110,7 @@ Resources:
   GeminiApiKeyParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /aws-practice/${AWS::StackName}/gemini-api-key
+      Name: !Sub /config/aws-practice/${AWS::StackName}/gemini-api-key
       Description: 'Gemini API key payload as JSON {"apiKey":"..."}'
       Type: String
       Value: '{"apiKey":"replace-in-console"}'
