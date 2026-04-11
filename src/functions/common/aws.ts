@@ -16,14 +16,14 @@ const ssm = new SSMClient({});
 export const tableName = process.env.TABLE_NAME!;
 export type TableKey = { PK: string; SK: string };
 
-export async function getParameterJson(parameterName: string): Promise<Record<string, string>> {
+export async function getParameterValue(parameterName: string): Promise<string> {
   const out = await ssm.send(
     new GetParameterCommand({
       Name: parameterName,
       WithDecryption: true
     })
   );
-  return JSON.parse(out.Parameter?.Value ?? '{}');
+  return out.Parameter?.Value ?? '';
 }
 
 export async function putItem(item: Record<string, unknown>) {

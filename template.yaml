@@ -102,18 +102,18 @@ Resources:
   AdminTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /config/aws-practice/${AWS::StackName}/admin-token
-      Description: Admin token payload as JSON {"token":"..."}
+      Name: !Sub /andithang-practice/${AWS::StackName}/admin-token
+      Description: Admin bearer token
       Type: String
-      Value: '{"token":"change-me"}'
+      Value: change-me
 
   GeminiApiKeyParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /config/aws-practice/${AWS::StackName}/gemini-api-key
-      Description: 'Gemini API key payload as JSON {"apiKey":"..."}'
+      Name: !Sub /andithang-practice/${AWS::StackName}/gemini-api-key
+      Description: Gemini API key
       Type: String
-      Value: '{"apiKey":"replace-in-console"}'
+      Value: replace-in-console
 
   DailyGeneratorFunction:
     Type: AWS::Serverless::Function

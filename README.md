@@ -89,8 +89,8 @@ npm run dev
 ## Required environment/secrets
 
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
-- `GEMINI_API_KEY_PARAMETER_NAME` -> SSM parameter JSON `{ "apiKey": "..." }`
-- `ADMIN_TOKEN_PARAMETER_NAME` -> SSM parameter JSON `{ "token": "..." }`
+- `GEMINI_API_KEY_PARAMETER_NAME` -> SSM parameter string (raw API key)
+- `ADMIN_TOKEN_PARAMETER_NAME` -> SSM parameter string (raw admin token)
 - `TABLE_NAME` (questions table, default `aws_exam_questions`)
 - `DEVICE_TABLE_NAME` (device table, default `aws_exam_devices`)
 - Frontend build env:
