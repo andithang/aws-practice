@@ -12,6 +12,7 @@ import {
   publishAdminBatch
 } from '../../lib/admin-api';
 import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
+import { DeviceBlockedError } from '../../lib/api-client';
 
 type ActionType = 'generate' | 'publish' | 'deprecate';
 
@@ -33,6 +34,10 @@ export default function Admin() {
       const nextBatches = await listAdminBatches();
       setBatches(nextBatches);
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -68,6 +73,10 @@ export default function Admin() {
       await generateAdminBatch();
       await loadBatches();
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -90,6 +99,10 @@ export default function Admin() {
       }
       await loadBatches();
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -154,6 +167,12 @@ export default function Admin() {
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Questions
+            </Link>
+            <Link
+              href="/admin/devices"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Devices
             </Link>
             <button
               onClick={generate}

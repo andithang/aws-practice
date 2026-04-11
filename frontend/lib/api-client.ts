@@ -1,6 +1,13 @@
 import { apiUrl } from './api';
 import { getOrRefreshDeviceSession, refreshDeviceSession } from './device-session';
 
+export class DeviceBlockedError extends Error {
+  constructor(message = 'Your device has been blocked.') {
+    super(message);
+    this.name = 'DeviceBlockedError';
+  }
+}
+
 function withDefaultJsonContentType(init: RequestInit, headers: Headers): void {
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
@@ -19,6 +26,23 @@ async function fetchWithDevice(path: string, init: RequestInit, refresh = false)
   });
 }
 
+async function readDeviceRejectionMessage(response: Response): Promise<string> {
+  const text = await response.text();
+  if (!text) return '';
+
+  try {
+    const parsed = JSON.parse(text) as { message?: string; error?: string };
+    return (parsed.message || parsed.error || '').trim();
+  } catch {
+    return text.trim();
+  }
+}
+
+function isRevokedDeviceMessage(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes('device id is unknown') || normalized.includes('revoked');
+}
+
 export async function apiRequest(
   path: string,
   init: RequestInit = {},
@@ -29,6 +53,20 @@ export async function apiRequest(
     return response;
   }
 
-  return fetchWithDevice(path, init, true);
-}
+  const firstMessage = await readDeviceRejectionMessage(response.clone());
+  if (isRevokedDeviceMessage(firstMessage)) {
+    throw new DeviceBlockedError(firstMessage || 'Your device has been blocked.');
+  }
 
+  const retryResponse = await fetchWithDevice(path, init, true);
+  if (retryResponse.status !== 428) {
+    return retryResponse;
+  }
+
+  const retryMessage = await readDeviceRejectionMessage(retryResponse.clone());
+  if (isRevokedDeviceMessage(retryMessage)) {
+    throw new DeviceBlockedError(retryMessage || 'Your device has been blocked.');
+  }
+
+  return retryResponse;
+}

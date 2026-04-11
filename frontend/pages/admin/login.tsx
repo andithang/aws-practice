@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import ThemeToggle from '../../components/ThemeToggle';
 import { loginAdmin } from '../../lib/admin-api';
 import { setAdminToken } from '../../lib/admin-auth';
+import { DeviceBlockedError } from '../../lib/api-client';
 
 export default function AdminLogin() {
   const [token, setToken] = useState('');
@@ -27,6 +28,10 @@ export default function AdminLogin() {
       setAdminToken(token);
       await router.push('/admin');
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        await router.replace('/blocked');
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
     } finally {

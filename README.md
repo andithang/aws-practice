@@ -9,7 +9,7 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 - **Admin API**: Bearer token validation in Lambda (token in Secrets Manager).
 - **Device bootstrap**: `POST /api/device/seed` issues a browser-scoped seed used to derive the `X-Device-Id` header required by every HTTP API route.
 - **Frontend**: Next.js static export hosted on GitHub Pages.
-- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status` directly, with the shared device header attached automatically.
+- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status`, `/api/admin/devices`, and `/api/admin/devices/{deviceId}` directly, with the shared device header attached automatically.
 
 ## Core constraints implemented
 

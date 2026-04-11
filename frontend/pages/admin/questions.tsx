@@ -15,6 +15,7 @@ import {
   updateAdminQuestionsStatus
 } from '../../lib/admin-api';
 import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
+import { DeviceBlockedError } from '../../lib/api-client';
 
 type LevelFilter = '' | 'practitioner' | 'associate' | 'professional';
 
@@ -113,6 +114,10 @@ export default function AdminQuestionsPage() {
       setFiltersApplied(nextFilters);
       setSelectedQuestionIds([]);
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -129,6 +134,10 @@ export default function AdminQuestionsPage() {
       const response = await listAdminBatches();
       setBatches(response);
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -188,6 +197,10 @@ export default function AdminQuestionsPage() {
         filtersApplied
       );
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -250,6 +263,10 @@ export default function AdminQuestionsPage() {
       );
       cancelAnswerEdit();
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       if (err instanceof AdminUnauthorizedError) {
         goToLogin();
         return;
@@ -356,6 +373,12 @@ export default function AdminQuestionsPage() {
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Batches
+            </Link>
+            <Link
+              href="/admin/devices"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Devices
             </Link>
             <button
               onClick={signOut}
@@ -697,4 +720,3 @@ export default function AdminQuestionsPage() {
     </>
   );
 }
-

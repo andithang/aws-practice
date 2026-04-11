@@ -36,7 +36,7 @@ Resources:
       StageName: prod
       Cors:
         AllowOrigin: !Sub "'${CorsAllowedOrigin}'"
-        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowMethods: "'GET,POST,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
         AllowCredentials: true
       Auth:
@@ -50,7 +50,7 @@ Resources:
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,DELETE,OPTIONS'"
         gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
 
   ApiGatewayDefault5xxResponse:
@@ -61,7 +61,7 @@ Resources:
       ResponseParameters:
         gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${CorsAllowedOrigin}'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id'"
-        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,DELETE,OPTIONS'"
         gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
 
   QuestionsTable:
@@ -412,6 +412,38 @@ Resources:
       BuildProperties:
         EntryPoints:
           - admin-question-answer/handler.ts
+
+  AdminDeviceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-device/handler.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DevicesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref AdminTokenSecret
+      Events:
+        AdminDeviceList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/devices
+            Method: GET
+        AdminDeviceRevoke:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/devices/{deviceId}
+            Method: DELETE
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-device/handler.ts
 
 Outputs:
   ApiBaseUrl:

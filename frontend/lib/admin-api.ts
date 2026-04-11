@@ -8,6 +8,15 @@ export type AdminBatch = {
   status: string;
 };
 
+export type AdminDevice = {
+  deviceId: string;
+  expiresAt: string;
+  expiresAtEpochSeconds?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  ttl?: number;
+};
+
 export type AdminQuestion = {
   id: string;
   questionId: string;
@@ -65,8 +74,8 @@ async function readError(response: Response, fallback: string): Promise<string> 
   if (!text) return fallback;
 
   try {
-    const parsed = JSON.parse(text) as { message?: string };
-    return parsed.message || fallback;
+    const parsed = JSON.parse(text) as { message?: string; error?: string };
+    return parsed.message || parsed.error || fallback;
   } catch {
     return text;
   }
@@ -112,6 +121,27 @@ export async function listAdminBatches(): Promise<AdminBatch[]> {
 
   const payload = (await response.json()) as { batches?: AdminBatch[] };
   return Array.isArray(payload.batches) ? payload.batches : [];
+}
+
+export async function listAdminDevices(): Promise<AdminDevice[]> {
+  const response = await adminRequest('/api/admin/devices', { method: 'GET' });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, `Failed to load devices (${response.status})`));
+  }
+
+  const payload = (await response.json()) as AdminDevice[];
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function revokeAdminDevice(deviceId: string): Promise<void> {
+  const response = await adminRequest(`/api/admin/devices/${encodeURIComponent(deviceId)}`, {
+    method: 'DELETE'
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, `Failed to revoke device (${response.status})`));
+  }
 }
 
 export async function generateAdminBatch(): Promise<void> {

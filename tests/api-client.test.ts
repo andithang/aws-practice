@@ -16,6 +16,7 @@ vi.mock('../frontend/lib/api', () => ({
 
 import { generateAdminBatch } from '../frontend/lib/admin-api';
 import { clearAdminToken } from '../frontend/lib/admin-auth';
+import { DeviceBlockedError } from '../frontend/lib/api-client';
 import { getOrRefreshDeviceSession, refreshDeviceSession } from '../frontend/lib/device-session';
 
 describe('api client', () => {
@@ -41,6 +42,23 @@ describe('api client', () => {
     await generateAdminBatch();
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(clearAdminToken).not.toHaveBeenCalled();
+  });
+
+  it('throws DeviceBlockedError when device is revoked', async () => {
+    vi.mocked(getOrRefreshDeviceSession).mockResolvedValue({
+      seed: 'seed',
+      deviceId: 'device',
+      expiresAt: '2026-04-11T00:00:00.000Z'
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Device id is unknown' }), { status: 428 }));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(generateAdminBatch()).rejects.toBeInstanceOf(DeviceBlockedError);
     expect(clearAdminToken).not.toHaveBeenCalled();
   });
 });

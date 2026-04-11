@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
-import { apiRequest } from '../lib/api-client';
+import { apiRequest, DeviceBlockedError } from '../lib/api-client';
 
 type Level = 'practitioner' | 'associate' | 'professional';
 type Option = { key: string; text: string };
@@ -134,6 +134,10 @@ export default function Practice() {
       setSelectedAnswers({});
       setCheckedResults({});
     } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
     } finally {

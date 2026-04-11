@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { TableKey } from './aws';
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -22,6 +22,23 @@ export async function getDeviceItem(key: TableKey): Promise<Record<string, unkno
       Key: key
     })
   );
-
   return (output.Item as Record<string, unknown> | undefined) || undefined;
+}
+
+export async function deleteDeviceItem(key: TableKey): Promise<void> {
+  await ddb.send(
+    new DeleteCommand({
+      TableName: deviceTableName,
+      Key: key
+    })
+  );
+}
+
+export async function listDevices(): Promise<Record<string, unknown>[]> {
+  const results = await ddb.send(
+    new ScanCommand({
+      TableName: deviceTableName
+    })
+  );
+  return results.Items || [];
 }
