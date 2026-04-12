@@ -20,6 +20,7 @@ type Question = {
 type Pagination = {
   requestedPage: number;
   effectivePage: number;
+  currentPageIndex?: number;
   size: number;
   windowSize: number;
   requestedWindow: number;
@@ -36,6 +37,7 @@ const validLevels: Level[] = ['practitioner', 'associate', 'professional'];
 const defaultPagination: Pagination = {
   requestedPage: 1,
   effectivePage: 1,
+  currentPageIndex: 1,
   size: 10,
   windowSize: 100,
   requestedWindow: 0,
@@ -206,7 +208,9 @@ export default function Practice() {
 
   const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
   const globalEffectivePage = pagination.effectiveWindow * pagesPerWindow + pagination.effectivePage;
-  const globalRequestedPage = pagination.requestedWindow * pagesPerWindow + pagination.requestedPage;
+  const currentPageIndex = pagination.currentPageIndex ?? globalEffectivePage;
+  const totalPages = pagination.totalFiltered === 0 ? 0 : Math.ceil(pagination.totalFiltered / pagination.size);
+  const currentPageDisplay = totalPages === 0 ? 0 : currentPageIndex;
 
   return (
     <>
@@ -234,7 +238,7 @@ export default function Practice() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {pagination.totalFiltered} published questions in this level | window {pagination.effectiveWindow + 1} | page {globalEffectivePage}
+                {pagination.totalFiltered} published questions in this level | page: {currentPageDisplay}/{totalPages}
               </p>
               <label className="text-sm">
                 <span className="mr-2 text-slate-600 dark:text-slate-300">Page size</span>
@@ -280,7 +284,9 @@ export default function Practice() {
                     className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900 sm:p-5"
                   >
                     <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      <span className="mr-2 text-brand-600 dark:text-brand-500">#{i + 1}</span>
+                      <span className="mr-2 text-brand-600 dark:text-brand-500">
+                        #{(currentPageIndex - 1) * pagination.size + i + 1}
+                      </span>
                       {q.stem}
                     </h2>
                     <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -341,7 +347,7 @@ export default function Practice() {
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Requested page {globalRequestedPage} | Effective page {globalEffectivePage}
+                    Current page: {currentPageDisplay}/{totalPages}
                     {pagination.didWindowRollover ? ' (window rollover)' : ''}
                   </p>
 

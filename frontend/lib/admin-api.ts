@@ -50,6 +50,7 @@ export type AdminQuestionsQuery = {
 export type AdminQuestionsPagination = {
   requestedPage: number;
   effectivePage: number;
+  currentPageIndex?: number;
   size: number;
   windowSize: number;
   requestedWindow: number;
@@ -206,6 +207,7 @@ export async function listAdminQuestions(
     pagination: payload.pagination || {
       requestedPage: 1,
       effectivePage: 1,
+      currentPageIndex: 1,
       size: query.size || 20,
       windowSize: 100,
       requestedWindow: 0,

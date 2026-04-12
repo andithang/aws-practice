@@ -38,6 +38,7 @@ const defaultFilters: QuestionFilters = {
 const defaultPagination: AdminQuestionsPagination = {
   requestedPage: 1,
   effectivePage: 1,
+  currentPageIndex: 1,
   size: 20,
   windowSize: 100,
   requestedWindow: 0,
@@ -346,7 +347,9 @@ export default function AdminQuestionsPage() {
     questions.length > 0 && questions.every((question) => selectedQuestionIds.includes(question.id));
   const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
   const globalEffectivePage = pagination.effectiveWindow * pagesPerWindow + pagination.effectivePage;
-  const globalRequestedPage = pagination.requestedWindow * pagesPerWindow + pagination.requestedPage;
+  const currentPageIndex = pagination.currentPageIndex ?? globalEffectivePage;
+  const totalPages = pagination.totalFiltered === 0 ? 0 : Math.ceil(pagination.totalFiltered / pagination.size);
+  const currentPageDisplay = totalPages === 0 ? 0 : currentPageIndex;
 
   return (
     <>
@@ -513,7 +516,7 @@ export default function AdminQuestionsPage() {
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white">Questions</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {pagination.totalFiltered} matched | window {pagination.effectiveWindow + 1} | page {globalEffectivePage}
+                {pagination.totalFiltered} matched | page: {currentPageDisplay}/{totalPages}
               </p>
             </div>
 
@@ -683,7 +686,7 @@ export default function AdminQuestionsPage() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-slate-500 dark:text-slate-400">
-              Requested page {globalRequestedPage} | Effective page {globalEffectivePage}
+              Current page: {currentPageDisplay}/{totalPages}
               {pagination.didWindowRollover && ' (window rollover)'}
             </div>
 

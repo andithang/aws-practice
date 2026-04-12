@@ -202,6 +202,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const totalPagesInWindow = totalInWindow === 0 ? 0 : Math.ceil(totalInWindow / size);
     const hasNextWindow = totalFiltered > windowEnd;
     const hasPrevWindow = effectiveWindow > 0;
+    const currentPageIndex = effectiveWindow * pagesPerWindow + effectivePage;
 
     logInfo('Admin questions listed', {
       ...requestFields,
@@ -209,6 +210,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       requestedWindow,
       effectivePage,
       effectiveWindow,
+      currentPageIndex,
       size,
       totalFiltered,
       returned: pageQuestions.length,
@@ -239,6 +241,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         windowSize,
         requestedWindow,
         effectiveWindow,
+        currentPageIndex,
         didWindowRollover,
         hasNextWindow,
         hasPrevWindow,
