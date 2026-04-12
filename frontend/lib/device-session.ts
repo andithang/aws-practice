@@ -7,6 +7,12 @@ export type DeviceSession = {
   expiresAtEpochSeconds: number;
 };
 
+export type PracticeAnswer = {
+  questionKey: string;
+  selectedAnswers: string[];
+  updatedAt: string;
+};
+
 type DeviceSeedResponse = {
   seed?: string;
   deviceId?: string;
@@ -14,8 +20,10 @@ type DeviceSeedResponse = {
 };
 
 const dbName = 'aws-practice-device';
-const storeName = 'device-session';
-const storeKey = 'current';
+const dbVersion = 2;
+const deviceStoreName = 'device-session';
+const deviceStoreKey = 'current';
+const practiceAnswerStoreName = 'practice-answers';
 const deviceSeedByteLength = 64;
 const refreshWindowMs = 3 * 24 * 60 * 60 * 1000;
 
@@ -31,11 +39,14 @@ function openDb(): Promise<IDBDatabase> {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, 1);
+    const request = indexedDB.open(dbName, dbVersion);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(storeName)) {
-        db.createObjectStore(storeName);
+      if (!db.objectStoreNames.contains(deviceStoreName)) {
+        db.createObjectStore(deviceStoreName);
+      }
+      if (!db.objectStoreNames.contains(practiceAnswerStoreName)) {
+        db.createObjectStore(practiceAnswerStoreName);
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -44,6 +55,7 @@ function openDb(): Promise<IDBDatabase> {
 }
 
 async function withStore<T>(
+  storeName: string,
   mode: IDBTransactionMode,
   task: (store: IDBObjectStore) => Promise<T> | T
 ): Promise<T> {
@@ -136,11 +148,22 @@ function isSessionLike(value: unknown): value is DeviceSession {
   );
 }
 
+function isPracticeAnswerLike(value: unknown): value is PracticeAnswer {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<PracticeAnswer>;
+  return (
+    typeof candidate.questionKey === 'string' &&
+    Array.isArray(candidate.selectedAnswers) &&
+    candidate.selectedAnswers.every((answer) => typeof answer === 'string') &&
+    typeof candidate.updatedAt === 'string'
+  );
+}
+
 export async function loadDeviceSession(): Promise<DeviceSession | null> {
   if (!hasIndexedDb()) return null;
 
-  const stored = await withStore('readonly', (store) => {
-    const request = store.get(storeKey);
+  const stored = await withStore(deviceStoreName, 'readonly', (store) => {
+    const request = store.get(deviceStoreKey);
     return new Promise<unknown>((resolve, reject) => {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error || new Error('Failed to read device session'));
@@ -155,9 +178,9 @@ export async function loadDeviceSession(): Promise<DeviceSession | null> {
 export async function saveDeviceSession(session: DeviceSession): Promise<void> {
   if (!hasIndexedDb()) return;
 
-  await withStore('readwrite', async (store) => {
+  await withStore(deviceStoreName, 'readwrite', async (store) => {
     await new Promise<void>((resolve, reject) => {
-      const request = store.put(session, storeKey);
+      const request = store.put(session, deviceStoreKey);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error || new Error('Failed to save device session'));
     });
@@ -167,11 +190,70 @@ export async function saveDeviceSession(session: DeviceSession): Promise<void> {
 export async function clearDeviceSession(): Promise<void> {
   if (!hasIndexedDb()) return;
 
-  await withStore('readwrite', async (store) => {
+  await withStore(deviceStoreName, 'readwrite', async (store) => {
     await new Promise<void>((resolve, reject) => {
-      const request = store.delete(storeKey);
+      const request = store.delete(deviceStoreKey);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error || new Error('Failed to clear device session'));
+    });
+  });
+}
+
+export async function savePracticeAnswer(input: {
+  questionKey: string;
+  selectedAnswers: string[];
+}): Promise<void> {
+  if (!hasIndexedDb()) return;
+  if (!input.questionKey.trim()) return;
+
+  const answer: PracticeAnswer = {
+    questionKey: input.questionKey,
+    selectedAnswers: input.selectedAnswers.filter((value) => typeof value === 'string'),
+    updatedAt: new Date().toISOString()
+  };
+
+  await withStore(practiceAnswerStoreName, 'readwrite', async (store) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(answer, answer.questionKey);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error || new Error('Failed to save practice answer'));
+    });
+  });
+}
+
+export async function loadPracticeAnswers(questionKeys: string[]): Promise<Record<string, string[]>> {
+  if (!hasIndexedDb()) return {};
+  if (questionKeys.length === 0) return {};
+
+  return withStore(practiceAnswerStoreName, 'readonly', async (store) => {
+    const entries = await Promise.all(
+      questionKeys.map((questionKey) => {
+        const request = store.get(questionKey);
+        return new Promise<[string, unknown]>((resolve, reject) => {
+          request.onsuccess = () => resolve([questionKey, request.result]);
+          request.onerror = () => reject(request.error || new Error('Failed to read practice answer'));
+        });
+      })
+    );
+
+    return entries.reduce<Record<string, string[]>>((acc, [questionKey, value]) => {
+      if (isPracticeAnswerLike(value)) {
+        acc[questionKey] = value.selectedAnswers;
+      }
+      return acc;
+    }, {});
+  });
+}
+
+export async function clearPracticeAnswer(questionKey: string): Promise<void> {
+  if (!hasIndexedDb()) return;
+  if (!questionKey.trim()) return;
+
+  await withStore(practiceAnswerStoreName, 'readwrite', async (store) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = store.delete(questionKey);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error || new Error('Failed to clear practice answer'));
     });
   });
 }

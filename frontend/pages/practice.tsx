@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
 import { apiRequest, DeviceBlockedError } from '../lib/api-client';
+import { clearPracticeAnswer, loadPracticeAnswers, savePracticeAnswer } from '../lib/device-session';
 
 type Level = 'practitioner' | 'associate' | 'professional';
 type Option = { key: string; text: string };
@@ -91,6 +92,12 @@ export default function Practice() {
           : [...existing, optionKey]
         : [optionKey];
 
+      if (next.length === 0) {
+        void clearPracticeAnswer(questionKey);
+      } else {
+        void savePracticeAnswer({ questionKey, selectedAnswers: next });
+      }
+
       return { ...prev, [questionKey]: next };
     });
 
@@ -131,10 +138,18 @@ export default function Practice() {
       };
 
       setLevel(data.level || nextLevel);
-      setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
+      setQuestions(nextQuestions);
       setPagination(data.pagination || { ...defaultPagination, size });
-      setSelectedAnswers({});
       setCheckedResults({});
+      try {
+        const persistedAnswers = await loadPracticeAnswers(
+          nextQuestions.map((question, index) => getQuestionKey(question, index))
+        );
+        setSelectedAnswers(persistedAnswers);
+      } catch {
+        setSelectedAnswers({});
+      }
     } catch (err) {
       if (err instanceof DeviceBlockedError) {
         router.replace('/blocked');
