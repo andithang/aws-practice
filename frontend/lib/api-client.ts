@@ -9,7 +9,8 @@ export class DeviceBlockedError extends Error {
 }
 
 function withDefaultJsonContentType(init: RequestInit, headers: Headers): void {
-  if (init.body && !headers.has('Content-Type')) {
+  const isFormDataBody = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  if (init.body && !isFormDataBody && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 }

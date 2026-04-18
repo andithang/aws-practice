@@ -5,6 +5,8 @@
     "@aws-sdk/client-dynamodb": "^3.775.0",
     "@aws-sdk/client-ssm": "^3.775.0",
     "@aws-sdk/lib-dynamodb": "^3.775.0",
+    "busboy": "^1.6.0",
+    "csv-parse": "^6.2.1",
     "esbuild": "^0.25.10"
   }
 }

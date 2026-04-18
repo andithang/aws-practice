@@ -418,6 +418,35 @@ Resources:
         EntryPoints:
           - admin-question-answer/handler.ts
 
+  AdminQuestionsImportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: admin-questions-import/handler.handler
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QuestionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminTokenParameter}
+      Events:
+        AdminQuestionsImport:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/admin/questions/import
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - admin-questions-import/handler.ts
+
   AdminDeviceFunction:
     Type: AWS::Serverless::Function
     Properties:

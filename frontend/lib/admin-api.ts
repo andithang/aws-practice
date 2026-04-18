@@ -63,6 +63,20 @@ export type AdminQuestionsPagination = {
   totalPagesInWindow: number;
 };
 
+export type AdminQuestionImportError = {
+  row: number;
+  reason: string;
+};
+
+export type AdminQuestionImportResult = {
+  totalRows: number;
+  insertedCount: number;
+  skippedExistingCount: number;
+  skippedInvalidCount: number;
+  skippedNonQuestionCount: number;
+  errors: AdminQuestionImportError[];
+};
+
 export class AdminUnauthorizedError extends Error {
   constructor() {
     super('Unauthorized');
@@ -256,5 +270,29 @@ export async function updateAdminQuestionAnswer(
   return {
     questionId: payload.updated?.questionId || questionId,
     updatedAt: payload.updated?.updatedAt || ''
+  };
+}
+
+export async function importAdminQuestionsCsv(file: File): Promise<AdminQuestionImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const response = await adminRequest('/api/admin/questions/import', {
+    method: 'POST',
+    body: form
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, `CSV import failed (${response.status})`));
+  }
+
+  const payload = (await response.json()) as Partial<AdminQuestionImportResult>;
+  return {
+    totalRows: Number(payload.totalRows || 0),
+    insertedCount: Number(payload.insertedCount || 0),
+    skippedExistingCount: Number(payload.skippedExistingCount || 0),
+    skippedInvalidCount: Number(payload.skippedInvalidCount || 0),
+    skippedNonQuestionCount: Number(payload.skippedNonQuestionCount || 0),
+    errors: Array.isArray(payload.errors) ? payload.errors : []
   };
 }

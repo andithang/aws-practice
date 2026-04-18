@@ -1,14 +1,16 @@
 import Link from 'next/link';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ThemeToggle from '../../components/ThemeToggle';
 import {
   AdminBatch,
+  AdminQuestionImportResult,
   AdminQuestion,
   AdminQuestionAction,
   AdminQuestionsPagination,
   AdminUnauthorizedError,
+  importAdminQuestionsCsv,
   listAdminBatches,
   listAdminQuestions,
   updateAdminQuestionAnswer,
@@ -72,6 +74,10 @@ export default function AdminQuestionsPage() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [editingAnswers, setEditingAnswers] = useState<string[]>([]);
   const [savingAnswerId, setSavingAnswerId] = useState<string | null>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<AdminQuestionImportResult | null>(null);
+  const importFileRef = useRef<HTMLInputElement | null>(null);
 
   const batchOptions = useMemo(
     () =>
@@ -279,6 +285,38 @@ export default function AdminQuestionsPage() {
     }
   }
 
+  async function runCsvImport(): Promise<void> {
+    if (!importFile) {
+      setError('Please select a CSV file before importing.');
+      return;
+    }
+
+    setImporting(true);
+    setError('');
+    setImportResult(null);
+
+    try {
+      const result = await importAdminQuestionsCsv(importFile);
+      setImportResult(result);
+      setImportFile(null);
+      if (importFileRef.current) importFileRef.current.value = '';
+      await loadQuestions(1, 0, pagination.size, filtersApplied);
+    } catch (err) {
+      if (err instanceof DeviceBlockedError) {
+        router.replace('/blocked');
+        return;
+      }
+      if (err instanceof AdminUnauthorizedError) {
+        goToLogin();
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'CSV import failed';
+      setError(message);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   function applyFilters(): void {
     void loadQuestions(1, 0, pagination.size, filtersDraft);
   }
@@ -350,6 +388,7 @@ export default function AdminQuestionsPage() {
   const currentPageIndex = pagination.currentPageIndex ?? globalEffectivePage;
   const totalPages = pagination.totalFiltered === 0 ? 0 : Math.ceil(pagination.totalFiltered / pagination.size);
   const currentPageDisplay = totalPages === 0 ? 0 : currentPageIndex;
+  const isBusy = loading || pendingAction !== '' || importing || editingQuestionId !== null;
 
   return (
     <>
@@ -398,6 +437,64 @@ export default function AdminQuestionsPage() {
             <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
           </section>
         )}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Import questions from CSV</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Supported: sample DynamoDB export format, up to 500 QUESTION rows per import.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="text-sm">
+                <span className="mb-1 block font-medium text-slate-700 dark:text-slate-200">CSV file</span>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setImportFile(file);
+                    setImportResult(null);
+                  }}
+                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                />
+              </label>
+              <button
+                onClick={() => void runCsvImport()}
+                disabled={isBusy || !importFile}
+                className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {importing ? 'Importing...' : 'Import CSV'}
+              </button>
+            </div>
+          </div>
+
+          {importResult && (
+            <div className="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+              <p className="font-medium text-slate-900 dark:text-white">
+                Import summary: {importResult.insertedCount}/{importResult.totalRows} inserted
+              </p>
+              <p className="mt-1 text-slate-600 dark:text-slate-300">
+                Existing skipped: {importResult.skippedExistingCount} | Invalid skipped:{' '}
+                {importResult.skippedInvalidCount} | Non-question skipped: {importResult.skippedNonQuestionCount}
+              </p>
+              {importResult.errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-medium text-slate-900 dark:text-white">Row errors</p>
+                  <ul className="mt-1 max-h-40 list-disc overflow-auto pl-5 text-xs text-slate-600 dark:text-slate-300">
+                    {importResult.errors.map((entry) => (
+                      <li key={`${entry.row}-${entry.reason}`}>
+                        Row {entry.row}: {entry.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -63,15 +63,19 @@ export async function queryAllByPk(pk: string, scanIndexForward = true): Promise
 export async function batchGetItems(keys: TableKey[]): Promise<Record<string, unknown>[]> {
   if (keys.length === 0) return [];
 
+  const maxBatchSize = 100;
   const items: Record<string, unknown>[] = [];
-  let requestItems: Record<string, { Keys: TableKey[] }> = {
-    [tableName]: { Keys: keys }
-  };
 
-  while (Object.keys(requestItems).length > 0) {
-    const output = await ddb.send(new BatchGetCommand({ RequestItems: requestItems }));
-    items.push(...((output.Responses?.[tableName] as Record<string, unknown>[] | undefined) || []));
-    requestItems = (output.UnprocessedKeys as Record<string, { Keys: TableKey[] }> | undefined) || {};
+  for (let index = 0; index < keys.length; index += maxBatchSize) {
+    let requestItems: Record<string, { Keys: TableKey[] }> = {
+      [tableName]: { Keys: keys.slice(index, index + maxBatchSize) }
+    };
+
+    while (Object.keys(requestItems).length > 0) {
+      const output = await ddb.send(new BatchGetCommand({ RequestItems: requestItems }));
+      items.push(...((output.Responses?.[tableName] as Record<string, unknown>[] | undefined) || []));
+      requestItems = (output.UnprocessedKeys as Record<string, { Keys: TableKey[] }> | undefined) || {};
+    }
   }
 
   return items;
