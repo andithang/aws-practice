@@ -206,6 +206,12 @@
         "kms:TagResource"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "AwsBackupStorageAllAccessPermissions",
+      "Effect": "Allow",
+      "Action": "backup-storage:*",
+      "Resource": "*"
     }
   ]
 }
