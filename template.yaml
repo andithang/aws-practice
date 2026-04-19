@@ -105,6 +105,52 @@ Resources:
         AttributeName: ttl
         Enabled: true
 
+  QuestionsBackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub ${AWS::StackName}-questions-backup-vault
+
+  BackupServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+
+  QuestionsBackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub ${AWS::StackName}-questions-daily-35d
+        BackupPlanRule:
+          - RuleName: DailyQuestionsBackup
+            TargetBackupVault: !Ref QuestionsBackupVault
+            ScheduleExpression: cron(0 3 * * ? *)
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 180
+            Lifecycle:
+              DeleteAfterDays: 35
+
+  QuestionsBackupSelection:
+    Type: AWS::Backup::BackupSelection
+    DependsOn:
+      - QuestionsTable
+      - QuestionsBackupPlan
+      - BackupServiceRole
+    Properties:
+      BackupPlanId: !Ref QuestionsBackupPlan
+      BackupSelection:
+        SelectionName: QuestionsTableSelection
+        IamRoleArn: !GetAtt BackupServiceRole.Arn
+        Resources:
+          - !GetAtt QuestionsTable.Arn
+
   AdminTokenParameter:
     Type: AWS::SSM::Parameter
     Properties:

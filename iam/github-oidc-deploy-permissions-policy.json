@@ -169,6 +169,29 @@
         "events:UntagResource"
       ],
       "Resource": "arn:aws:events:<AWS_REGION>:<ACCOUNT_ID>:rule/<STACK_NAME>*"
+    },
+    {
+      "Sid": "AwsBackupDeploy",
+      "Effect": "Allow",
+      "Action": [
+        "backup:CreateBackupVault",
+        "backup:DeleteBackupVault",
+        "backup:DescribeBackupVault",
+        "backup:PutBackupVaultAccessPolicy",
+        "backup:DeleteBackupVaultAccessPolicy",
+        "backup:CreateBackupPlan",
+        "backup:DeleteBackupPlan",
+        "backup:GetBackupPlan",
+        "backup:UpdateBackupPlan",
+        "backup:CreateBackupSelection",
+        "backup:DeleteBackupSelection",
+        "backup:GetBackupSelection",
+        "backup:ListBackupSelections",
+        "backup:TagResource",
+        "backup:UntagResource",
+        "backup:ListTags"
+      ],
+      "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_questions*"
     }
   ]
 }
