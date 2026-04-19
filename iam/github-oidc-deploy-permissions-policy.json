@@ -190,18 +190,22 @@
         "backup:UntagResource",
         "backup:ListTags"
       ],
-      "Resource": "arn:aws:backup:<AWS_REGION>:<ACCOUNT_ID>:*"
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
       "Action": [
+        "kms:CreateGrant",
+        "kms:GenerateDataKey",
+        "kms:Decrypt",
+        "kms:RetireGrant",
         "kms:CreateKey",
         "kms:DescribeKey",
         "kms:CreateAlias",
         "kms:ListAliases",
         "kms:TagResource"
       ],
-      "Resource": "arn:aws:kms:<AWS_REGION>:<ACCOUNT_ID>:*"
+      "Resource": "*"
     }
   ]
 }
