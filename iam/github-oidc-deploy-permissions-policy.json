@@ -113,7 +113,6 @@
       "Action": [
         "dynamodb:CreateTable",
         "dynamodb:DescribeTimeToLive",
-        "dynamodb:DeleteTable",
         "dynamodb:DescribeTable",
         "dynamodb:ListTagsOfResource",
         "dynamodb:TagResource",
@@ -121,7 +120,7 @@
         "dynamodb:UpdateTimeToLive",
         "dynamodb:UpdateTable"
       ],
-      "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_questions*"
+      "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:*"
     },
     {
       "Sid": "DynamoDbDevicesTableDeploy",
@@ -191,7 +190,8 @@
         "backup:UntagResource",
         "backup:ListTags"
       ],
-      "Resource": "arn:aws:dynamodb:<AWS_REGION>:<ACCOUNT_ID>:table/aws_exam_questions*"
+      "Resource": "arn:aws:backup:<AWS_REGION>:<ACCOUNT_ID>:*"
     }
   ]
 }
+
