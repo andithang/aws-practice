@@ -191,7 +191,17 @@
         "backup:ListTags"
       ],
       "Resource": "arn:aws:backup:<AWS_REGION>:<ACCOUNT_ID>:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey",
+        "kms:DescribeKey",
+        "kms:CreateAlias",
+        "kms:ListAliases",
+        "kms:TagResource"
+      ],
+      "Resource": "arn:aws:kms:<AWS_REGION>:<ACCOUNT_ID>:*"
     }
   ]
 }
-
