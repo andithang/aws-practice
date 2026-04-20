@@ -1,8 +1,10 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { validateDeviceForEvent } from '../common/device';
 import { queryAllByPk } from '../common/aws';
+import { getUserSubFromEvent } from '../common/cognito-auth';
 import { json } from '../common/http';
 import { errorLogFields, logError, logInfo, logWarn } from '../common/log';
+import { loadPracticeAnswersForUser } from '../common/practice-answer-store';
 import { Level } from '../common/types';
 
 const levels: Level[] = ['practitioner', 'associate', 'professional'];
@@ -40,6 +42,13 @@ function isQuestionRecord(item: Record<string, unknown>): item is Record<string,
     typeof item.createdAt === 'string' &&
     item.createdAt.length > 0
   );
+}
+
+function questionKeyFromRecord(item: Record<string, unknown>, index: number): string {
+  const questionId = typeof item.questionId === 'string' ? item.questionId : '';
+  const createdAt = typeof item.createdAt === 'string' ? item.createdAt : '';
+  if (questionId && createdAt) return `${questionId}_${createdAt}`;
+  return `question-${index}`;
 }
 
 export const handler: APIGatewayProxyHandler = async (event) => {
@@ -98,6 +107,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const pageStart = (effectivePage - 1) * size;
     const pageEnd = pageStart + size;
     const pageQuestions = currentWindowQuestions.slice(pageStart, pageEnd);
+    const userSub = getUserSubFromEvent(event);
+    if (!userSub) {
+      logWarn('Missing Cognito sub claim', requestFields);
+      return json(401, { message: 'Unauthorized' });
+    }
+
+    const pageQuestionKeys = pageQuestions.map((question, index) => questionKeyFromRecord(question, index));
+    const persistedAnswers = await loadPracticeAnswersForUser(userSub, pageQuestionKeys);
 
     const totalFiltered = publishedQuestions.length;
     const totalInWindow = currentWindowQuestions.length;
@@ -124,6 +141,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       level,
       count: pageQuestions.length,
       questions: pageQuestions,
+      persistedAnswers,
       pagination: {
         requestedPage: page,
         effectivePage,

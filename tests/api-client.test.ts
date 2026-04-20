@@ -5,6 +5,10 @@ vi.mock('../frontend/lib/device-session', () => ({
   refreshDeviceSession: vi.fn()
 }));
 
+vi.mock('../frontend/lib/cognito-auth', () => ({
+  getValidIdToken: vi.fn(async () => null)
+}));
+
 vi.mock('../frontend/lib/admin-auth', () => ({
   clearAdminToken: vi.fn(),
   getAdminToken: vi.fn(() => 'admin-token')

@@ -5,6 +5,10 @@ vi.mock('../frontend/lib/device-session', () => ({
   refreshDeviceSession: vi.fn()
 }));
 
+vi.mock('../frontend/lib/cognito-auth', () => ({
+  getValidIdToken: vi.fn(async () => null)
+}));
+
 vi.mock('../frontend/lib/api', () => ({
   apiUrl: (path: string) => `http://localhost${path}`
 }));

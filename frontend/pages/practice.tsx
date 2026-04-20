@@ -4,7 +4,8 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '../components/ThemeToggle';
 import { apiRequest, DeviceBlockedError } from '../lib/api-client';
-import { clearPracticeAnswer, loadPracticeAnswers, savePracticeAnswer } from '../lib/device-session';
+import { getValidIdToken } from '../lib/cognito-auth';
+import { clearPracticeAnswer, savePracticeAnswer } from '../lib/practice-answer-api';
 
 type Level = 'practitioner' | 'associate' | 'professional';
 type Option = { key: string; text: string };
@@ -134,6 +135,7 @@ export default function Practice() {
       const data = (await res.json()) as {
         level?: Level;
         questions?: Question[];
+        persistedAnswers?: Record<string, string[]>;
         pagination?: Pagination;
       };
 
@@ -142,14 +144,8 @@ export default function Practice() {
       setQuestions(nextQuestions);
       setPagination(data.pagination || { ...defaultPagination, size });
       setCheckedResults({});
-      try {
-        const persistedAnswers = await loadPracticeAnswers(
-          nextQuestions.map((question, index) => getQuestionKey(question, index))
-        );
-        setSelectedAnswers(persistedAnswers);
-      } catch {
-        setSelectedAnswers({});
-      }
+      const persistedAnswers = data.persistedAnswers || {};
+      setSelectedAnswers(persistedAnswers);
     } catch (err) {
       if (err instanceof DeviceBlockedError) {
         router.replace('/blocked');
@@ -164,16 +160,31 @@ export default function Practice() {
 
   useEffect(() => {
     if (!router.isReady) return;
+    let cancelled = false;
+    async function load() {
+      const token = await getValidIdToken();
+      if (!token) {
+        await router.replace('/login');
+        return;
+      }
 
-    const selectedLevel = parseSelectedLevel(router.query.level);
-    if (!selectedLevel) {
-      setError('Please choose a level from the home page first.');
-      setLoading(false);
-      return;
+      const selectedLevel = parseSelectedLevel(router.query.level);
+      if (!selectedLevel) {
+        setError('Please choose a level from the level page first.');
+        setLoading(false);
+        return;
+      }
+
+      if (!cancelled) {
+        setLevel(selectedLevel);
+        void loadQuestions(selectedLevel, 1, 0, defaultPagination.size);
+      }
     }
 
-    setLevel(selectedLevel);
-    void loadQuestions(selectedLevel, 1, 0, defaultPagination.size);
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [router.isReady, router.query.level]);
 
   function goToPrevPage(): void {
@@ -241,10 +252,10 @@ export default function Practice() {
             </div>
             <div className="flex items-center gap-3">
               <Link
-                href="/"
+                href="/levels"
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                Home
+                Levels
               </Link>
               <ThemeToggle />
             </div>

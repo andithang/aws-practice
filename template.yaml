@@ -18,6 +18,9 @@ Parameters:
   DeviceTableName:
     Type: String
     Default: aws_exam_devices
+  PracticeAnswersTableName:
+    Type: String
+    Default: aws_exam_practice_answers
 
 Globals:
   Function:
@@ -30,6 +33,7 @@ Globals:
       Variables:
         TABLE_NAME: !Ref QuestionsTable
         DEVICE_TABLE_NAME: !Ref DevicesTable
+        PRACTICE_ANSWERS_TABLE_NAME: !Ref PracticeAnswersTable
         GEMINI_MODEL: !Ref GeminiModel
         ADMIN_TOKEN_PARAMETER_NAME: !Ref AdminTokenParameter
         GEMINI_API_KEY_PARAMETER_NAME: !Ref GeminiApiKeyParameter
@@ -47,6 +51,9 @@ Resources:
         AllowCredentials: true
       Auth:
         ApiKeyRequired: false
+        Authorizers:
+          CognitoUserPoolAuthorizer:
+            UserPoolArn: !GetAtt CognitoUserPool.Arn
 
   ApiGatewayDefault4xxResponse:
     Type: AWS::ApiGateway::GatewayResponse
@@ -104,6 +111,62 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+
+  PracticeAnswersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref PracticeAnswersTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      UserPoolName: !Sub ${AWS::StackName}-learners
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub ${AWS::StackName}-frontend
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
 
   QuestionsBackupVault:
     Type: AWS::Backup::BackupVault
@@ -205,6 +268,8 @@ Resources:
             TableName: !Ref QuestionsTable
         - DynamoDBReadPolicy:
             TableName: !Ref DevicesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PracticeAnswersTable
       Events:
         GetPracticeQuestions:
           Type: Api
@@ -212,11 +277,63 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /api/practice/questions
             Method: GET
+            Auth:
+              Authorizer: CognitoUserPoolAuthorizer
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
           - practice-questions/handler.ts
+
+  PracticeAnswersSaveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: practice-answers-save/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PracticeAnswersTable
+      Events:
+        SavePracticeAnswers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/practice/answers
+            Method: POST
+            Auth:
+              Authorizer: CognitoUserPoolAuthorizer
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - practice-answers-save/handler.ts
+
+  PracticeAnswersDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: practice-answers-delete/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PracticeAnswersTable
+      Events:
+        DeletePracticeAnswers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/practice/answers
+            Method: DELETE
+            Auth:
+              Authorizer: CognitoUserPoolAuthorizer
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - practice-answers-delete/handler.ts
 
   DeviceSeedFunction:
     Type: AWS::Serverless::Function
@@ -529,3 +646,12 @@ Outputs:
   ApiBaseUrl:
     Description: Base URL
     Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  CognitoUserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+  CognitoUserPoolClientId:
+    Description: Cognito User Pool App Client ID
+    Value: !Ref CognitoUserPoolClient
+  CognitoRegion:
+    Description: Cognito Region
+    Value: !Ref AWS::Region

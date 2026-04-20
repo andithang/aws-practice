@@ -6,17 +6,19 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 
 - **Scheduled generation (every 8 hours)**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
+- **Learner auth**: Amazon Cognito User Pool (email/password sign-up + email verification + required `name` attribute).
 - **Admin API**: Bearer token validation in Lambda (token in SSM Parameter Store).
 - **Device bootstrap**: `POST /api/device/seed` issues a browser-scoped seed used to derive the `X-Device-Id` header required by every HTTP API route.
+- **Practice answer persistence**: Learner answer selections are saved in a dedicated DynamoDB table and rehydrated on next visit.
 - **Frontend**: Next.js static export hosted on GitHub Pages.
 - **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status`, `/api/admin/devices`, and `/api/admin/devices/{deviceId}` directly, with the shared device header attached automatically.
 
 ## Core constraints implemented
 
 - No generation at request time.
-- FE never chooses generation level.
-- Public practice FE only calls `/api/practice/questions`.
-- Random level selection occurs in Lambda for both generation and practice retrieval.
+- FE level selection is done by learner on `/levels`.
+- Learner APIs require both Cognito JWT (`Authorization`) and device header (`X-Device-Id`).
+- Public practice FE calls `/api/practice/questions` plus `/api/practice/answers` for persistence.
 
 ## DynamoDB tables
 
@@ -35,6 +37,12 @@ Device table: `aws_exam_devices`
   - `PK = DEVICE#{deviceId}`
   - `SK = METADATA`
   - TTL attribute: `ttl`
+
+Practice answers table: `aws_exam_practice_answers`
+
+- Answer item:
+  - `PK = USER#{cognitoSub}`
+  - `SK = QUESTION#{questionKey}`
 
 ## Deploy
 
@@ -93,8 +101,12 @@ npm run dev
 - `ADMIN_TOKEN_PARAMETER_NAME` -> SSM parameter string (raw admin token)
 - `TABLE_NAME` (questions table, default `aws_exam_questions`)
 - `DEVICE_TABLE_NAME` (device table, default `aws_exam_devices`)
+- `PRACTICE_ANSWERS_TABLE_NAME` (practice answers table, default `aws_exam_practice_answers`)
 - Frontend build env:
   - `NEXT_PUBLIC_API_BASE_URL`
+  - `NEXT_PUBLIC_COGNITO_REGION`
+  - `NEXT_PUBLIC_COGNITO_USER_POOL_ID`
+  - `NEXT_PUBLIC_COGNITO_CLIENT_ID`
 
 ## GitHub Actions
 

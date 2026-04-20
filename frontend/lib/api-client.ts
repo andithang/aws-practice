@@ -1,4 +1,5 @@
 import { apiUrl } from './api';
+import { getValidIdToken } from './cognito-auth';
 import { getOrRefreshDeviceSession, refreshDeviceSession } from './device-session';
 
 export class DeviceBlockedError extends Error {
@@ -17,8 +18,12 @@ function withDefaultJsonContentType(init: RequestInit, headers: Headers): void {
 
 async function fetchWithDevice(path: string, init: RequestInit, refresh = false): Promise<Response> {
   const session = refresh ? await refreshDeviceSession() : await getOrRefreshDeviceSession();
+  const idToken = await getValidIdToken();
   const headers = new Headers(init.headers);
   headers.set('X-Device-Id', session.deviceId);
+  if (idToken) {
+    headers.set('Authorization', `Bearer ${idToken}`);
+  }
   withDefaultJsonContentType(init, headers);
 
   return fetch(apiUrl(path), {
