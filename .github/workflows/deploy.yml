@@ -7,6 +7,11 @@ on:
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
+    outputs:
+      api_base_url: ${{ steps.stack-outputs.outputs.api_base_url }}
+      cognito_region: ${{ steps.stack-outputs.outputs.cognito_region }}
+      cognito_user_pool_id: ${{ steps.stack-outputs.outputs.cognito_user_pool_id }}
+      cognito_user_pool_client_id: ${{ steps.stack-outputs.outputs.cognito_user_pool_client_id }}
     permissions:
       id-token: write
       contents: read
@@ -51,6 +56,20 @@ jobs:
             GeminiModel="$GEMINI_MODEL" \
             AdminApiKeyValue="$ADMIN_API_KEY_VALUE" \
             GeminiApiKey="$GEMINI_API_KEY"
+      - name: Read stack outputs
+        id: stack-outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_BASE_URL="$(aws cloudformation describe-stacks --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" --output text)"
+          COGNITO_REGION="$(aws cloudformation describe-stacks --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='CognitoRegion'].OutputValue" --output text)"
+          COGNITO_USER_POOL_ID="$(aws cloudformation describe-stacks --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolId'].OutputValue" --output text)"
+          COGNITO_USER_POOL_CLIENT_ID="$(aws cloudformation describe-stacks --stack-name "$SAM_STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='CognitoUserPoolClientId'].OutputValue" --output text)"
+
+          echo "api_base_url=$API_BASE_URL" >> "$GITHUB_OUTPUT"
+          echo "cognito_region=$COGNITO_REGION" >> "$GITHUB_OUTPUT"
+          echo "cognito_user_pool_id=$COGNITO_USER_POOL_ID" >> "$GITHUB_OUTPUT"
+          echo "cognito_user_pool_client_id=$COGNITO_USER_POOL_CLIENT_ID" >> "$GITHUB_OUTPUT"
 
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -63,10 +82,10 @@ jobs:
       id-token: write
       contents: read
     env:
-      NEXT_PUBLIC_API_BASE_URL: ${{ secrets.FRONTEND_BACKEND_API_BASE_URL }}
-      NEXT_PUBLIC_COGNITO_REGION: ${{ secrets.FRONTEND_COGNITO_REGION }}
-      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.FRONTEND_COGNITO_USER_POOL_ID }}
-      NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.FRONTEND_COGNITO_CLIENT_ID }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ needs.deploy-backend.outputs.api_base_url }}
+      NEXT_PUBLIC_COGNITO_REGION: ${{ needs.deploy-backend.outputs.cognito_region }}
+      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ needs.deploy-backend.outputs.cognito_user_pool_id }}
+      NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ needs.deploy-backend.outputs.cognito_user_pool_client_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

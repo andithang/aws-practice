@@ -38,6 +38,7 @@ Globals:
         ADMIN_TOKEN_PARAMETER_NAME: !Ref AdminTokenParameter
         GEMINI_API_KEY_PARAMETER_NAME: !Ref GeminiApiKeyParameter
         CORS_ALLOW_ORIGIN: !Ref CorsAllowedOrigin
+        COGNITO_USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
 
 Resources:
   ApiGateway:
@@ -54,6 +55,15 @@ Resources:
         Authorizers:
           CognitoUserPoolAuthorizer:
             UserPoolArn: !GetAtt CognitoUserPool.Arn
+      MethodSettings:
+        - HttpMethod: POST
+          ResourcePath: /api/auth/forgot-password/start
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
+        - HttpMethod: POST
+          ResourcePath: /api/auth/forgot-password/confirm
+          ThrottlingBurstLimit: 5
+          ThrottlingRateLimit: 2
 
   ApiGatewayDefault4xxResponse:
     Type: AWS::ApiGateway::GatewayResponse
@@ -355,6 +365,58 @@ Resources:
       BuildProperties:
         EntryPoints:
           - device-seed/handler.ts
+
+  AuthForgotPasswordStartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: auth-forgot-password-start/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ForgotPassword
+              Resource: !GetAtt CognitoUserPool.Arn
+      Events:
+        AuthForgotPasswordStart:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/auth/forgot-password/start
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - auth-forgot-password-start/handler.ts
+
+  AuthForgotPasswordConfirmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/functions
+      Handler: auth-forgot-password-confirm/handler.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref DevicesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ConfirmForgotPassword
+              Resource: !GetAtt CognitoUserPool.Arn
+      Events:
+        AuthForgotPasswordConfirm:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /api/auth/forgot-password/confirm
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - auth-forgot-password-confirm/handler.ts
 
   AdminLoginFunction:
     Type: AWS::Serverless::Function
