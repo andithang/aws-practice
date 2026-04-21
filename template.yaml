@@ -280,6 +280,11 @@ Resources:
             TableName: !Ref DevicesTable
         - DynamoDBReadPolicy:
             TableName: !Ref PracticeAnswersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt DevicesTable.Arn
       Events:
         GetPracticeQuestions:
           Type: Api
@@ -305,6 +310,11 @@ Resources:
             TableName: !Ref DevicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref PracticeAnswersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt DevicesTable.Arn
       Events:
         SavePracticeAnswers:
           Type: Api
@@ -330,6 +340,11 @@ Resources:
             TableName: !Ref DevicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref PracticeAnswersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt DevicesTable.Arn
       Events:
         DeletePracticeAnswers:
           Type: Api
