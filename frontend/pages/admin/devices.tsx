@@ -181,6 +181,8 @@ export default function AdminDevicesPage() {
                   <thead>
                     <tr className="border-b border-slate-200 text-left dark:border-slate-700">
                       <th className="px-3 py-2">Device ID</th>
+                      <th className="px-3 py-2">Email</th>
+                      <th className="px-3 py-2">Browser</th>
                       <th className="px-3 py-2">Status</th>
                       <th className="px-3 py-2">Expires</th>
                       <th className="px-3 py-2">Created</th>
@@ -195,6 +197,15 @@ export default function AdminDevicesPage() {
                         <tr key={device.deviceId} className="border-b border-slate-100 dark:border-slate-800">
                           <td className="max-w-[20rem] px-3 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 sm:text-sm">
                             {device.deviceId}
+                          </td>
+                          <td className="max-w-[16rem] truncate px-3 py-3 text-slate-700 dark:text-slate-200" title={device.email || '-'}>
+                            {device.email || '-'}
+                          </td>
+                          <td
+                            className="max-w-[20rem] truncate px-3 py-3 text-slate-700 dark:text-slate-200"
+                            title={device.userAgent || '-'}
+                          >
+                            {device.userAgent || '-'}
                           </td>
                           <td className="px-3 py-3">
                             <span

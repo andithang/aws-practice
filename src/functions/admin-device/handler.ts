@@ -9,6 +9,8 @@ const legacyRoutePath = '/devices';
 
 type AdminDeviceSummary = {
   deviceId: string;
+  email?: string;
+  userAgent?: string;
   expiresAt: string;
   expiresAtEpochSeconds: number;
   createdAt: string;
@@ -36,6 +38,8 @@ function toAdminDeviceSummary(record: Record<string, unknown>): AdminDeviceSumma
 
   return {
     deviceId,
+    email: typeof record.email === 'string' && record.email.trim() ? record.email.trim() : undefined,
+    userAgent: typeof record.userAgent === 'string' && record.userAgent.trim() ? record.userAgent.trim() : undefined,
     expiresAt: typeof record.expiresAt === 'string' ? record.expiresAt : '',
     expiresAtEpochSeconds: typeof record.expiresAtEpochSeconds === 'number' ? record.expiresAtEpochSeconds : 0,
     createdAt: typeof record.createdAt === 'string' ? record.createdAt : '',

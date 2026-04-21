@@ -1,5 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { validateDeviceForEvent } from '../common/device';
+import { enrichDeviceIdentityForEvent, validateDeviceForEvent } from '../common/device';
 import { queryAllByPk } from '../common/aws';
 import { getUserSubFromEvent } from '../common/cognito-auth';
 import { json } from '../common/http';
@@ -62,6 +62,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return json(deviceValidation.statusCode, { message: deviceValidation.message });
     }
 
+    const userSub = getUserSubFromEvent(event);
+    if (!userSub) {
+      logWarn('Missing Cognito sub claim', requestFields);
+      return json(401, { message: 'Unauthorized' });
+    }
+    await enrichDeviceIdentityForEvent(event, deviceValidation.deviceId);
+
     const query = event.queryStringParameters || {};
     const rawLevel = query.level;
     const requestedLevel = parseLevel(rawLevel);
@@ -107,11 +114,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     const pageStart = (effectivePage - 1) * size;
     const pageEnd = pageStart + size;
     const pageQuestions = currentWindowQuestions.slice(pageStart, pageEnd);
-    const userSub = getUserSubFromEvent(event);
-    if (!userSub) {
-      logWarn('Missing Cognito sub claim', requestFields);
-      return json(401, { message: 'Unauthorized' });
-    }
 
     const pageQuestionKeys = pageQuestions.map((question, index) => questionKeyFromRecord(question, index));
     const persistedAnswers = await loadPracticeAnswersForUser(userSub, pageQuestionKeys);

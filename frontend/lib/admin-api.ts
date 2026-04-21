@@ -10,6 +10,8 @@ export type AdminBatch = {
 
 export type AdminDevice = {
   deviceId: string;
+  email?: string;
+  userAgent?: string;
   expiresAt: string;
   expiresAtEpochSeconds?: number;
   createdAt?: string;

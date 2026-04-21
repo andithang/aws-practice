@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { createHash, randomBytes } from 'crypto';
+import { getUserEmailFromEvent } from './cognito-auth';
 import { getDeviceItem, putDeviceItem } from './device-store';
 
 export const deviceSeedByteLength = 64;
@@ -51,6 +52,11 @@ function base64UrlToBytes(value: string): Uint8Array {
 
 function getDeviceHeader(headers: APIGatewayProxyEvent['headers']): string {
   const value = headers[deviceHeaderName] || headers['X-Device-Id'];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function getUserAgentHeader(headers: APIGatewayProxyEvent['headers']): string {
+  const value = headers['user-agent'] || headers['User-Agent'];
   return typeof value === 'string' ? value.trim() : '';
 }
 
@@ -132,4 +138,32 @@ export async function validateDeviceForEvent(
   }
 
   return { ok: true, deviceId };
+}
+
+export async function enrichDeviceIdentityForEvent(
+  event: APIGatewayProxyEvent,
+  deviceId: string,
+  now = new Date()
+): Promise<void> {
+  const email = getUserEmailFromEvent(event);
+  if (!email) return;
+
+  const record = await getDeviceItem({ PK: `DEVICE#${deviceId}`, SK: deviceRecordSk });
+  if (!record || record.entityType !== 'DEVICE') return;
+
+  const storedEmail = typeof record.email === 'string' ? record.email.trim().toLowerCase() : '';
+  const storedUserAgent = typeof record.userAgent === 'string' ? record.userAgent.trim() : '';
+  const requestedUserAgent = getUserAgentHeader(event.headers || {});
+  const nextUserAgent = requestedUserAgent || storedUserAgent;
+
+  if (storedEmail === email && storedUserAgent === nextUserAgent) {
+    return;
+  }
+
+  await putDeviceItem({
+    ...record,
+    email,
+    userAgent: nextUserAgent,
+    updatedAt: nowIso(now)
+  });
 }

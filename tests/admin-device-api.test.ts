@@ -20,14 +20,24 @@ describe('admin device api', () => {
 
   it('loads admin devices via GET /api/admin/devices', async () => {
     vi.mocked(apiRequest).mockResolvedValue(
-      new Response(JSON.stringify([{ deviceId: 'device-1', expiresAt: '2099-01-01T00:00:00.000Z' }]), {
+      new Response(JSON.stringify([{
+        deviceId: 'device-1',
+        email: 'user@example.com',
+        userAgent: 'Mozilla/5.0',
+        expiresAt: '2099-01-01T00:00:00.000Z'
+      }]), {
         status: 200
       })
     );
 
     const devices = await listAdminDevices();
 
-    expect(devices).toEqual([{ deviceId: 'device-1', expiresAt: '2099-01-01T00:00:00.000Z' }]);
+    expect(devices).toEqual([{
+      deviceId: 'device-1',
+      email: 'user@example.com',
+      userAgent: 'Mozilla/5.0',
+      expiresAt: '2099-01-01T00:00:00.000Z'
+    }]);
     expect(vi.mocked(apiRequest)).toHaveBeenCalledWith('/api/admin/devices', expect.any(Object));
   });
 

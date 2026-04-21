@@ -40,6 +40,8 @@ describe('admin-device handler', () => {
         entityType: 'DEVICE',
         seed: 'sensitive-seed',
         deviceId: 'device-1',
+        email: 'user@example.com',
+        userAgent: 'Mozilla/5.0',
         expiresAt: '2099-01-01T00:00:00.000Z',
         expiresAtEpochSeconds: 4070908800,
         createdAt: '2026-04-11T00:00:00.000Z',
@@ -54,6 +56,8 @@ describe('admin-device handler', () => {
     expect(JSON.parse(response.body)).toEqual([
       {
         deviceId: 'device-1',
+        email: 'user@example.com',
+        userAgent: 'Mozilla/5.0',
         expiresAt: '2099-01-01T00:00:00.000Z',
         expiresAtEpochSeconds: 4070908800,
         createdAt: '2026-04-11T00:00:00.000Z',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getUserSubFromEvent } from '../src/functions/common/cognito-auth';
+import { getUserEmailFromEvent, getUserSubFromEvent } from '../src/functions/common/cognito-auth';
 
 function buildEvent(authorizer: unknown): Parameters<typeof getUserSubFromEvent>[0] {
   return {
@@ -55,5 +55,56 @@ describe('getUserSubFromEvent', () => {
     } as never);
 
     expect(sub).toBe('user-sub-from-token');
+  });
+});
+
+describe('getUserEmailFromEvent', () => {
+  it('reads email from REST API authorizer.claims', () => {
+    const email = getUserEmailFromEvent(
+      buildEvent({
+        claims: {
+          email: ' USER@Example.com '
+        }
+      })
+    );
+
+    expect(email).toBe('user@example.com');
+  });
+
+  it('reads email from HTTP API authorizer.jwt.claims', () => {
+    const email = getUserEmailFromEvent(
+      buildEvent({
+        jwt: {
+          claims: {
+            email: 'user-jwt@example.com'
+          }
+        }
+      })
+    );
+
+    expect(email).toBe('user-jwt@example.com');
+  });
+
+  it('reads email from authorization bearer token payload when authorizer is missing', () => {
+    const payload = Buffer.from(JSON.stringify({ email: 'payload@example.com' }), 'utf8').toString('base64url');
+    const token = `header.${payload}.signature`;
+    const email = getUserEmailFromEvent({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      requestContext: {}
+    } as never);
+
+    expect(email).toBe('payload@example.com');
+  });
+
+  it('returns empty string when email is unavailable or malformed', () => {
+    expect(getUserEmailFromEvent(buildEvent({ claims: {} }))).toBe('');
+    expect(getUserEmailFromEvent({
+      headers: {
+        authorization: 'Bearer invalid-token'
+      },
+      requestContext: {}
+    } as never)).toBe('');
   });
 });

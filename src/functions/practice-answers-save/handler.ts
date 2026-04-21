@@ -1,6 +1,6 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { getUserSubFromEvent } from '../common/cognito-auth';
-import { validateDeviceForEvent } from '../common/device';
+import { enrichDeviceIdentityForEvent, validateDeviceForEvent } from '../common/device';
 import { json } from '../common/http';
 import { errorLogFields, logError, logInfo, logWarn } from '../common/log';
 import { upsertPracticeAnswerForUser } from '../common/practice-answer-store';
@@ -45,6 +45,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     if (!userSub) {
       return json(401, { message: 'Unauthorized' });
     }
+    await enrichDeviceIdentityForEvent(event, deviceValidation.deviceId);
 
     const body = parseBody(event.body);
     const questionKey = typeof body.questionKey === 'string' ? body.questionKey.trim() : '';
