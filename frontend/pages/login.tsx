@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/router';
 import ThemeToggle from '../components/ThemeToggle';
 import { signIn } from '../lib/cognito-auth';
+import { buildVerifyRequiredRoute, isUnverifiedUserError } from '../lib/auth-gate';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +21,10 @@ export default function LoginPage() {
       await signIn({ email, password });
       await router.replace('/levels');
     } catch (err) {
+      if (isUnverifiedUserError(err)) {
+        await router.replace(buildVerifyRequiredRoute(email));
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to sign in');
     } finally {
       setSubmitting(false);
