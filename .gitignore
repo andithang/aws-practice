@@ -4,3 +4,4 @@ frontend/.next
 frontend/out
 env.local.json
 tmp/*
+.env

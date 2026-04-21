@@ -35,7 +35,12 @@ export class CognitoAuthError extends Error {
 }
 
 function requireEnv(name: 'NEXT_PUBLIC_COGNITO_REGION' | 'NEXT_PUBLIC_COGNITO_USER_POOL_ID' | 'NEXT_PUBLIC_COGNITO_CLIENT_ID'): string {
-  const value = (process.env[name] || '').trim();
+  const envValueByName = {
+    NEXT_PUBLIC_COGNITO_REGION: process.env.NEXT_PUBLIC_COGNITO_REGION,
+    NEXT_PUBLIC_COGNITO_USER_POOL_ID: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID,
+    NEXT_PUBLIC_COGNITO_CLIENT_ID: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID
+  } as const;
+  const value = (envValueByName[name] || '').trim();
   if (!value) {
     throw new Error(`${name} is required`);
   }
