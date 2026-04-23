@@ -279,6 +279,17 @@ export async function getCurrentUserClaims(): Promise<JwtClaims | null> {
   return parseJwtClaims(idToken);
 }
 
+export async function getCurrentUserEmail(): Promise<string | null> {
+  const claims = await getCurrentUserClaims();
+  if (!claims) return null;
+
+  const email = typeof claims.email === 'string' ? claims.email.trim() : '';
+  if (email) return email;
+
+  const username = typeof claims['cognito:username'] === 'string' ? claims['cognito:username'].trim() : '';
+  return username || null;
+}
+
 export function isAdminClaim(claims: JwtClaims | null): boolean {
   if (!claims) return false;
   const raw = claims['custom:is_admin'];
