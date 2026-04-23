@@ -17,6 +17,7 @@ import {
   updateAdminQuestionsStatus
 } from '../../lib/admin-api';
 import { ensureAdminSession } from '../../lib/admin-gate';
+import { signOut as clearSession } from '../../lib/cognito-auth';
 import { DeviceBlockedError } from '../../lib/api-client';
 
 type LevelFilter = '' | 'practitioner' | 'associate' | 'professional';
@@ -91,7 +92,7 @@ export default function AdminQuestionsPage() {
   );
 
   function goToLogin(): void {
-    signOut();
+    clearSession();
     router.replace('/login');
   }
 
@@ -377,7 +378,7 @@ export default function AdminQuestionsPage() {
     }
   }
 
-  function signOut(): void {
+  function handleSignOut(): void {
     goToLogin();
   }
 
@@ -423,7 +424,7 @@ export default function AdminQuestionsPage() {
               Devices
             </Link>
             <button
-              onClick={signOut}
+              onClick={handleSignOut}
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Sign out
