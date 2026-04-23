@@ -566,6 +566,12 @@ Resources:
             TableName: !Ref QuestionsTable
         - DynamoDBReadPolicy:
             TableName: !Ref DevicesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:TransactWriteItems
+              Resource:
+                - !GetAtt QuestionsTable.Arn
       Events:
         AdminQuestionStatus:
           Type: Api

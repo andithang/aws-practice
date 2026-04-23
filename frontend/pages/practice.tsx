@@ -42,6 +42,14 @@ type OptionTextClassParams = {
   isAnswerCorrectResult: boolean;
 };
 
+type SelectedAnswerSummariesParams = {
+  options: Option[];
+  selected: string[];
+  correctAnswers: string[];
+  checked: boolean;
+  isAnswerCorrectResult: boolean;
+};
+
 const validLevels: Level[] = ['practitioner', 'associate', 'professional'];
 const defaultPagination: Pagination = {
   requestedPage: 1,
@@ -82,6 +90,41 @@ export function getOptionTextClass({
   if (isCorrectOption) return 'text-emerald-600 dark:text-emerald-400';
   if (isSelected && !isAnswerCorrectResult) return 'text-red-600 dark:text-red-400';
   return 'text-slate-700 dark:text-slate-200';
+}
+
+export function getSelectedAnswerSummaries({
+  options,
+  selected,
+  correctAnswers,
+  checked,
+  isAnswerCorrectResult
+}: SelectedAnswerSummariesParams): Array<{ key: string; text: string; className: string }> {
+  const selectedSet = new Set(selected);
+  return options
+    .filter((option) => selectedSet.has(option.key))
+    .map((option) => ({
+      key: option.key,
+      text: option.text,
+      className: getOptionTextClass({
+        checked,
+        isSelected: true,
+        isCorrectOption: correctAnswers.includes(option.key),
+        isAnswerCorrectResult
+      })
+    }));
+}
+
+export function getCheckedResultsForQuestions(
+  questions: Array<{ questionId?: string; createdAt?: string }>,
+  persistedAnswers: Record<string, string[]>
+): Record<string, boolean> {
+  return questions.reduce<Record<string, boolean>>((acc, question, index) => {
+    const questionKey = question.questionId ? `${question.questionId}_${question.createdAt}` : `question-${index}`;
+    if ((persistedAnswers[questionKey] || []).length > 0) {
+      acc[questionKey] = true;
+    }
+    return acc;
+  }, {});
 }
 
 export default function Practice() {
@@ -162,8 +205,8 @@ export default function Practice() {
       const nextQuestions = Array.isArray(data.questions) ? data.questions : [];
       setQuestions(nextQuestions);
       setPagination(data.pagination || { ...defaultPagination, size });
-      setCheckedResults({});
       const persistedAnswers = data.persistedAnswers || {};
+      setCheckedResults(getCheckedResultsForQuestions(nextQuestions, persistedAnswers));
       setSelectedAnswers(persistedAnswers);
     } catch (err) {
       if (err instanceof DeviceBlockedError) {
@@ -322,6 +365,13 @@ export default function Practice() {
                 const selected = selectedAnswers[questionKey] || [];
                 const checked = checkedResults[questionKey] || false;
                 const correct = checked ? isAnswerCorrect(q, selected) : false;
+                const selectedAnswerSummaries = getSelectedAnswerSummaries({
+                  options: q.options || [],
+                  selected,
+                  correctAnswers: q.correctAnswers || [],
+                  checked,
+                  isAnswerCorrectResult: correct
+                });
 
                 return (
                   <article
@@ -388,10 +438,23 @@ export default function Practice() {
                       )}
                     </div>
 
-                    {checked && q.explanation && (
+                    {checked && (
                       <section className="mt-4 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200">
-                        <p className="font-medium text-slate-900 dark:text-white">Explanation</p>
-                        <p className="mt-2 leading-relaxed">{q.explanation}</p>
+                        <p className="font-medium text-slate-900 dark:text-white">Your answer</p>
+                        {selectedAnswerSummaries.length > 0 ? (
+                          <ul className="mt-2 space-y-1">
+                            {selectedAnswerSummaries.map((answer) => (
+                              <li key={answer.key} className={answer.className}>
+                                <span className="mr-2 font-semibold">{answer.key}.</span>
+                                {answer.text}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-2 text-slate-500 dark:text-slate-400">-</p>
+                        )}
+                        <p className="mt-3 font-medium text-slate-900 dark:text-white">Explanation</p>
+                        <p className="mt-2 leading-relaxed">{q.explanation || '-'}</p>
                       </section>
                     )}
                   </article>

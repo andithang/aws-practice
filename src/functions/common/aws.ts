@@ -89,9 +89,7 @@ export async function transactUpdateQuestionPublication(
   if (keys.length === 0) return;
 
   const isPublished = action === 'publish';
-  const updateExpression = isPublished
-    ? 'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #publishedAt = :timestamp REMOVE #deprecatedAt'
-    : 'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #deprecatedAt = :timestamp';
+  const updateConfig = buildQuestionPublicationUpdateExpression(action);
 
   await ddb.send(new TransactWriteCommand({
     TransactItems: keys.map((key) => ({
@@ -99,14 +97,8 @@ export async function transactUpdateQuestionPublication(
         TableName: tableName,
         Key: key,
         ConditionExpression: 'attribute_exists(PK) AND attribute_exists(SK) AND #entityType = :entityType',
-        UpdateExpression: updateExpression,
-        ExpressionAttributeNames: {
-          '#entityType': 'entityType',
-          '#isPublished': 'isPublished',
-          '#updatedAt': 'updatedAt',
-          '#publishedAt': 'publishedAt',
-          '#deprecatedAt': 'deprecatedAt'
-        },
+        UpdateExpression: updateConfig.updateExpression,
+        ExpressionAttributeNames: updateConfig.expressionAttributeNames,
         ExpressionAttributeValues: {
           ':entityType': 'QUESTION',
           ':isPublished': isPublished,
@@ -116,6 +108,35 @@ export async function transactUpdateQuestionPublication(
       }
     }))
   }));
+}
+
+export function buildQuestionPublicationUpdateExpression(action: 'publish' | 'deprecate'): {
+  updateExpression: string;
+  expressionAttributeNames: Record<string, string>;
+} {
+  if (action === 'publish') {
+    return {
+      updateExpression:
+        'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #publishedAt = :timestamp REMOVE #deprecatedAt',
+      expressionAttributeNames: {
+        '#entityType': 'entityType',
+        '#isPublished': 'isPublished',
+        '#updatedAt': 'updatedAt',
+        '#publishedAt': 'publishedAt',
+        '#deprecatedAt': 'deprecatedAt'
+      }
+    };
+  }
+
+  return {
+    updateExpression: 'SET #isPublished = :isPublished, #updatedAt = :updatedAt, #deprecatedAt = :timestamp',
+    expressionAttributeNames: {
+      '#entityType': 'entityType',
+      '#isPublished': 'isPublished',
+      '#updatedAt': 'updatedAt',
+      '#deprecatedAt': 'deprecatedAt'
+    }
+  };
 }
 
 export async function updateStatus(pk: string, sk: string, status: string) {
