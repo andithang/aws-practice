@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { validateAdminToken } from '../common/auth';
+import { validateAdminAccess } from '../common/auth';
 import { deleteDeviceItem, listDevices as listDeviceItems } from '../common/device-store';
 import { json } from '../common/http';
 
@@ -64,7 +64,7 @@ async function revokeDevice(event: APIGatewayProxyEvent): Promise<APIGatewayProx
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const auth = await validateAdminToken(event);
+  const auth = await validateAdminAccess(event);
   if (!auth.ok) {
     return json(401, { error: auth.message || 'Unauthorized' });
   }
@@ -87,3 +87,4 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   if (httpMethod === 'DELETE' && isRevokeRoute(targetPath)) return revokeDevice(event);
   return json(404, { error: 'Not found' });
 };
+

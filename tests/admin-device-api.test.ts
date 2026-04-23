@@ -4,13 +4,7 @@ vi.mock('../frontend/lib/api-client', () => ({
   apiRequest: vi.fn()
 }));
 
-vi.mock('../frontend/lib/admin-auth', () => ({
-  clearAdminToken: vi.fn(),
-  getAdminToken: vi.fn(() => 'admin-token')
-}));
-
 import { apiRequest } from '../frontend/lib/api-client';
-import { clearAdminToken } from '../frontend/lib/admin-auth';
 import { AdminUnauthorizedError, listAdminDevices, revokeAdminDevice } from '../frontend/lib/admin-api';
 
 describe('admin device api', () => {
@@ -49,10 +43,9 @@ describe('admin device api', () => {
     expect(vi.mocked(apiRequest)).toHaveBeenCalledWith('/api/admin/devices/device-1', expect.any(Object));
   });
 
-  it('clears token and throws AdminUnauthorizedError on 401', async () => {
+  it('throws AdminUnauthorizedError on 401', async () => {
     vi.mocked(apiRequest).mockResolvedValue(new Response('', { status: 401 }));
 
     await expect(listAdminDevices()).rejects.toBeInstanceOf(AdminUnauthorizedError);
-    expect(clearAdminToken).toHaveBeenCalledTimes(1);
   });
 });

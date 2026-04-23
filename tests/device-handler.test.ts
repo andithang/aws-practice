@@ -12,13 +12,13 @@ vi.mock('../src/functions/common/device', async () => {
 });
 
 vi.mock('../src/functions/common/auth', () => ({
-  verifyAdminToken: vi.fn()
+  verifyAdminAccess: vi.fn()
 }));
 
 import { handler as deviceSeedHandler } from '../src/functions/device-seed/handler';
 import { handler as adminQuestionsHandler } from '../src/functions/admin-questions/handler';
 import { issueDeviceSeed, validateDeviceForEvent } from '../src/functions/common/device';
-import { verifyAdminToken } from '../src/functions/common/auth';
+import { verifyAdminAccess } from '../src/functions/common/auth';
 
 describe('device handlers', () => {
   it('returns a seed payload from the device seed endpoint', async () => {
@@ -47,8 +47,8 @@ describe('device handlers', () => {
       statusCode: 428,
       message: 'Device required'
     });
-    const verifyAdminTokenMock = vi.mocked(verifyAdminToken);
-    verifyAdminTokenMock.mockResolvedValue(true);
+    const verifyAdminAccessMock = vi.mocked(verifyAdminAccess);
+    verifyAdminAccessMock.mockResolvedValue(true);
 
     const response = await adminQuestionsHandler({
       headers: {},
@@ -56,6 +56,7 @@ describe('device handlers', () => {
     } as never);
 
     expect(response.statusCode).toBe(428);
-    expect(verifyAdminTokenMock).not.toHaveBeenCalled();
+    expect(verifyAdminAccessMock).not.toHaveBeenCalled();
   });
 });
+

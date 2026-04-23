@@ -16,7 +16,7 @@ import {
   updateAdminQuestionAnswer,
   updateAdminQuestionsStatus
 } from '../../lib/admin-api';
-import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
+import { ensureAdminSession } from '../../lib/admin-gate';
 import { DeviceBlockedError } from '../../lib/api-client';
 
 type LevelFilter = '' | 'practitioner' | 'associate' | 'professional';
@@ -91,8 +91,8 @@ export default function AdminQuestionsPage() {
   );
 
   function goToLogin(): void {
-    clearAdminToken();
-    router.replace('/admin/login');
+    signOut();
+    router.replace('/login');
   }
 
   async function loadQuestions(
@@ -154,13 +154,13 @@ export default function AdminQuestionsPage() {
   }
 
   useEffect(() => {
-    if (!hasAdminToken()) {
-      goToLogin();
-      return;
-    }
-
     async function bootstrap(): Promise<void> {
       try {
+        const decision = await ensureAdminSession();
+        if (decision !== 'allow') {
+          router.replace('/login');
+          return;
+        }
         await loadBatchOptions();
         await loadQuestions(1, 0, defaultPagination.size, defaultFilters);
       } catch (err) {

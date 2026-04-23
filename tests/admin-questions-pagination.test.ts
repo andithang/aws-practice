@@ -5,7 +5,7 @@ vi.mock('../src/functions/common/device', () => ({
 }));
 
 vi.mock('../src/functions/common/auth', () => ({
-  verifyAdminToken: vi.fn()
+  verifyAdminAccess: vi.fn()
 }));
 
 vi.mock('../src/functions/common/aws', () => ({
@@ -14,7 +14,7 @@ vi.mock('../src/functions/common/aws', () => ({
 
 import { handler } from '../src/functions/admin-questions/handler';
 import { queryAllByPk } from '../src/functions/common/aws';
-import { verifyAdminToken } from '../src/functions/common/auth';
+import { verifyAdminAccess } from '../src/functions/common/auth';
 import { validateDeviceForEvent } from '../src/functions/common/device';
 
 function buildEvent(
@@ -57,7 +57,7 @@ describe('admin-questions handler pagination', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(validateDeviceForEvent).mockResolvedValue({ ok: true });
-    vi.mocked(verifyAdminToken).mockResolvedValue(true);
+    vi.mocked(verifyAdminAccess).mockResolvedValue(true);
     vi.mocked(queryAllByPk).mockResolvedValue(Array.from({ length: 120 }, (_, index) => buildQuestion(index)));
   });
 
@@ -93,3 +93,4 @@ describe('admin-questions handler pagination', () => {
     expect(body.pagination.currentPageIndex).toBe(6);
   });
 });
+

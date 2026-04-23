@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 vi.mock('../src/functions/common/auth', () => ({
-  validateAdminToken: vi.fn()
+  validateAdminAccess: vi.fn()
 }));
 
 vi.mock('../src/functions/common/device-store', () => ({
@@ -10,7 +10,7 @@ vi.mock('../src/functions/common/device-store', () => ({
 }));
 
 import { handler } from '../src/functions/admin-device/handler';
-import { validateAdminToken } from '../src/functions/common/auth';
+import { validateAdminAccess } from '../src/functions/common/auth';
 import { listDevices, deleteDeviceItem } from '../src/functions/common/device-store';
 
 function buildEvent(overrides: Record<string, unknown> = {}) {
@@ -32,7 +32,7 @@ describe('admin-device handler', () => {
   });
 
   it('lists devices for GET /api/admin/devices and omits sensitive seed fields', async () => {
-    vi.mocked(validateAdminToken).mockResolvedValue({ ok: true });
+    vi.mocked(validateAdminAccess).mockResolvedValue({ ok: true });
     vi.mocked(listDevices).mockResolvedValue([
       {
         PK: 'DEVICE#device-1',
@@ -67,8 +67,8 @@ describe('admin-device handler', () => {
     ]);
   });
 
-  it('returns 401 when admin token is invalid', async () => {
-    vi.mocked(validateAdminToken).mockResolvedValue({ ok: false, message: 'Invalid admin token' });
+  it('returns 401 when admin claim is missing', async () => {
+    vi.mocked(validateAdminAccess).mockResolvedValue({ ok: false, message: 'Admin access required' });
 
     const response = await handler(buildEvent());
 
@@ -77,7 +77,7 @@ describe('admin-device handler', () => {
   });
 
   it('returns 404 for POST /api/admin/devices because manual creation is disabled', async () => {
-    vi.mocked(validateAdminToken).mockResolvedValue({ ok: true });
+    vi.mocked(validateAdminAccess).mockResolvedValue({ ok: true });
 
     const response = await handler(
       buildEvent({
@@ -92,7 +92,7 @@ describe('admin-device handler', () => {
   });
 
   it('returns 404 for DELETE /api/admin/devices because deviceId path param is required', async () => {
-    vi.mocked(validateAdminToken).mockResolvedValue({ ok: true });
+    vi.mocked(validateAdminAccess).mockResolvedValue({ ok: true });
 
     const response = await handler(
       buildEvent({
@@ -106,7 +106,7 @@ describe('admin-device handler', () => {
   });
 
   it('revokes a device for DELETE /api/admin/devices/{deviceId}', async () => {
-    vi.mocked(validateAdminToken).mockResolvedValue({ ok: true });
+    vi.mocked(validateAdminAccess).mockResolvedValue({ ok: true });
 
     const response = await handler(
       buildEvent({
@@ -120,3 +120,4 @@ describe('admin-device handler', () => {
     expect(vi.mocked(deleteDeviceItem)).toHaveBeenCalledWith({ PK: 'DEVICE#device-1', SK: 'METADATA' });
   });
 });
+

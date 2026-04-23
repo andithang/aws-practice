@@ -9,22 +9,16 @@ vi.mock('../frontend/lib/cognito-auth', () => ({
   getValidIdToken: vi.fn(async () => null)
 }));
 
-vi.mock('../frontend/lib/admin-auth', () => ({
-  clearAdminToken: vi.fn(),
-  getAdminToken: vi.fn(() => 'admin-token')
-}));
-
 vi.mock('../frontend/lib/api', () => ({
   apiUrl: (path: string) => `http://localhost${path}`
 }));
 
 import { generateAdminBatch } from '../frontend/lib/admin-api';
-import { clearAdminToken } from '../frontend/lib/admin-auth';
 import { DeviceBlockedError } from '../frontend/lib/api-client';
 import { getOrRefreshDeviceSession, refreshDeviceSession } from '../frontend/lib/device-session';
 
 describe('api client', () => {
-  it('retries once after a device rejection and keeps the admin token', async () => {
+  it('retries once after a device rejection', async () => {
     vi.mocked(getOrRefreshDeviceSession).mockResolvedValue({
       seed: 'seed',
       deviceId: 'device',
@@ -46,7 +40,6 @@ describe('api client', () => {
     await generateAdminBatch();
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(clearAdminToken).not.toHaveBeenCalled();
   });
 
   it('throws DeviceBlockedError when device is revoked', async () => {
@@ -63,6 +56,5 @@ describe('api client', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(generateAdminBatch()).rejects.toBeInstanceOf(DeviceBlockedError);
-    expect(clearAdminToken).not.toHaveBeenCalled();
   });
 });

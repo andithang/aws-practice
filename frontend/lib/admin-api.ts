@@ -1,4 +1,3 @@
-import { clearAdminToken, getAdminToken } from './admin-auth';
 import { apiRequest } from './api-client';
 
 export type AdminBatch = {
@@ -99,34 +98,15 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 async function adminRequest(path: string, init: RequestInit = {}): Promise<Response> {
-  const headers = new Headers(init.headers);
-  const token = getAdminToken();
-
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
   const response = await apiRequest(path, {
-    ...init,
-    headers
+    ...init
   });
 
   if (response.status === 401) {
-    clearAdminToken();
     throw new AdminUnauthorizedError();
   }
 
   return response;
-}
-
-export async function loginAdmin(token: string): Promise<boolean> {
-  const response = await apiRequest('/api/admin/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: token.trim() })
-  });
-
-  return response.ok;
 }
 
 export async function listAdminBatches(): Promise<AdminBatch[]> {

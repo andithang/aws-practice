@@ -11,6 +11,8 @@ type CognitoSession = {
   expiresAtEpochMs: number;
 };
 
+type JwtClaims = Record<string, unknown>;
+
 type SignUpInput = {
   email: string;
   password: string;
@@ -87,6 +89,41 @@ function writeStorage(session: CognitoSession): void {
 function clearStorage(): void {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(storageKey);
+}
+
+function decodeBase64Url(value: string): string | null {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const normalized = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+
+  if (typeof atob === 'function') {
+    try {
+      return atob(normalized);
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    return Buffer.from(normalized, 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+function parseJwtClaims(token: string): JwtClaims | null {
+  const parts = token.split('.');
+  if (parts.length < 2 || !parts[1]) return null;
+
+  const payloadText = decodeBase64Url(parts[1]);
+  if (!payloadText) return null;
+
+  try {
+    const parsed = JSON.parse(payloadText) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as JwtClaims;
+  } catch {
+    return null;
+  }
 }
 
 function parseCognitoError(payload: CognitoErrorPayload): CognitoAuthError {
@@ -234,4 +271,22 @@ export async function getValidIdToken(): Promise<string | null> {
     clearStorage();
     return null;
   }
+}
+
+export async function getCurrentUserClaims(): Promise<JwtClaims | null> {
+  const idToken = await getValidIdToken();
+  if (!idToken) return null;
+  return parseJwtClaims(idToken);
+}
+
+export function isAdminClaim(claims: JwtClaims | null): boolean {
+  if (!claims) return false;
+  const raw = claims['custom:is_admin'];
+  if (typeof raw !== 'string') return false;
+  return raw.trim().toLowerCase() === 'true';
+}
+
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  const claims = await getCurrentUserClaims();
+  return isAdminClaim(claims);
 }

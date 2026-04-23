@@ -11,7 +11,7 @@ import {
   listAdminBatches,
   publishAdminBatch
 } from '../../lib/admin-api';
-import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
+import { ensureAdminSession } from '../../lib/admin-gate';
 import { DeviceBlockedError } from '../../lib/api-client';
 
 type ActionType = 'generate' | 'publish' | 'deprecate';
@@ -24,8 +24,8 @@ export default function Admin() {
   const [pendingAction, setPendingAction] = useState<ActionType | ''>('');
 
   function goToLogin(): void {
-    clearAdminToken();
-    router.replace('/admin/login');
+    signOut();
+    router.replace('/login');
   }
 
   async function loadBatches() {
@@ -47,13 +47,13 @@ export default function Admin() {
   }
 
   useEffect(() => {
-    if (!hasAdminToken()) {
-      goToLogin();
-      return;
-    }
-
     async function bootstrap() {
       try {
+        const decision = await ensureAdminSession();
+        if (decision !== 'allow') {
+          router.replace('/login');
+          return;
+        }
         await loadBatches();
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';

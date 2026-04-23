@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getUserEmailFromEvent, getUserSubFromEvent } from '../src/functions/common/cognito-auth';
+import { getUserEmailFromEvent, getUserSubFromEvent, isAdminUserFromEvent } from '../src/functions/common/cognito-auth';
 
 function buildEvent(authorizer: unknown): Parameters<typeof getUserSubFromEvent>[0] {
   return {
@@ -106,5 +106,59 @@ describe('getUserEmailFromEvent', () => {
       },
       requestContext: {}
     } as never)).toBe('');
+  });
+});
+
+describe('isAdminUserFromEvent', () => {
+  it('reads custom:is_admin from REST API authorizer claims', () => {
+    const isAdmin = isAdminUserFromEvent(
+      buildEvent({
+        claims: {
+          'custom:is_admin': 'TRUE'
+        }
+      })
+    );
+
+    expect(isAdmin).toBe(true);
+  });
+
+  it('reads custom:is_admin from HTTP API authorizer jwt claims', () => {
+    const isAdmin = isAdminUserFromEvent(
+      buildEvent({
+        jwt: {
+          claims: {
+            'custom:is_admin': 'true'
+          }
+        }
+      })
+    );
+
+    expect(isAdmin).toBe(true);
+  });
+
+  it('reads custom:is_admin from authorization bearer payload fallback', () => {
+    const payload = Buffer.from(JSON.stringify({ 'custom:is_admin': 'TrUe' }), 'utf8').toString('base64url');
+    const token = `header.${payload}.signature`;
+    const isAdmin = isAdminUserFromEvent({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      requestContext: {}
+    } as never);
+
+    expect(isAdmin).toBe(true);
+  });
+
+  it('returns false for missing or false-ish claims', () => {
+    expect(isAdminUserFromEvent(buildEvent({ claims: {} }))).toBe(false);
+    expect(
+      isAdminUserFromEvent(
+        buildEvent({
+          claims: {
+            'custom:is_admin': 'false'
+          }
+        })
+      )
+    ).toBe(false);
   });
 });

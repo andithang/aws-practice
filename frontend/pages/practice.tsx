@@ -35,6 +35,13 @@ type Pagination = {
   totalPagesInWindow: number;
 };
 
+type OptionTextClassParams = {
+  checked: boolean;
+  isSelected: boolean;
+  isCorrectOption: boolean;
+  isAnswerCorrectResult: boolean;
+};
+
 const validLevels: Level[] = ['practitioner', 'associate', 'professional'];
 const defaultPagination: Pagination = {
   requestedPage: 1,
@@ -63,6 +70,18 @@ function formatClientDateTime(value: string | undefined): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+export function getOptionTextClass({
+  checked,
+  isSelected,
+  isCorrectOption,
+  isAnswerCorrectResult
+}: OptionTextClassParams): string {
+  if (!checked) return 'text-slate-700 dark:text-slate-200';
+  if (isCorrectOption) return 'text-emerald-600 dark:text-emerald-400';
+  if (isSelected && !isAnswerCorrectResult) return 'text-red-600 dark:text-red-400';
+  return 'text-slate-700 dark:text-slate-200';
 }
 
 export default function Practice() {
@@ -324,7 +343,15 @@ export default function Practice() {
                     </p>
 
                     <ul className="mt-3 space-y-2">
-                      {q.options?.map((o) => (
+                      {q.options?.map((o) => {
+                        const optionTextClass = getOptionTextClass({
+                          checked,
+                          isSelected: selected.includes(o.key),
+                          isCorrectOption: (q.correctAnswers || []).includes(o.key),
+                          isAnswerCorrectResult: correct
+                        });
+
+                        return (
                         <li key={o.key}>
                           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                             <input
@@ -335,13 +362,14 @@ export default function Practice() {
                               onChange={() => selectAnswer(questionKey, o.key, multiple)}
                               className="mt-0.5 h-4 w-4"
                             />
-                            <span>
+                            <span className={optionTextClass}>
                               <span className="mr-2 font-semibold">{o.key}.</span>
                               {o.text}
                             </span>
                           </label>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
 
                     <div className="mt-4 flex items-center gap-3">

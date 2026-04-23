@@ -1,13 +1,13 @@
 param(
   [string]$ApiBase = "http://127.0.0.1:3002",
-  [string]$AdminToken = "",
+  [string]$AdminIdToken = "",
   [switch]$RunMutations
 )
 
 $ErrorActionPreference = "Stop"
 
-if ([string]::IsNullOrWhiteSpace($AdminToken)) {
-  throw "Provide -AdminToken <token> to test admin APIs."
+if ([string]::IsNullOrWhiteSpace($AdminIdToken)) {
+  throw "Provide -AdminIdToken <cognito-id-token> to test admin APIs."
 }
 
 function ConvertTo-Base64Url {
@@ -114,22 +114,15 @@ if ($practice.StatusCode -ne 200) {
 }
 Write-Host "   questions=$($practice.Body.questions.Count), expiresAt=$($seedResponse.Body.expiresAt)"
 
-Write-Host "4) POST /api/admin/login with device"
-$login = Invoke-Json -Method POST -Uri "$ApiBase/api/admin/login" -Headers $deviceHeaders -Body @{ token = $AdminToken }
-if ($login.StatusCode -ne 200 -or -not $login.Body.ok) {
-  throw "Admin login failed."
-}
-Write-Host "   login=ok"
+$authHeaders = @{ Authorization = "Bearer $AdminIdToken"; 'X-Device-Id' = $deviceId }
 
-$authHeaders = @{ Authorization = "Bearer $AdminToken"; 'X-Device-Id' = $deviceId }
-
-Write-Host "5) GET /api/admin/batches"
+Write-Host "4) GET /api/admin/batches"
 $batchesResponse = Invoke-Json -Method GET -Uri "$ApiBase/api/admin/batches" -Headers $authHeaders
-$count = if ($null -eq $batchesResponse.batches) { 0 } else { $batchesResponse.batches.Count }
+$count = if ($null -eq $batchesResponse.Body.batches) { 0 } else { $batchesResponse.Body.batches.Count }
 Write-Host "   batches=$count"
 
 if ($RunMutations) {
-  Write-Host "6) POST /api/admin/generate"
+  Write-Host "5) POST /api/admin/generate"
   $generate = Invoke-Json -Method POST -Uri "$ApiBase/api/admin/generate" -Headers $authHeaders
   Write-Host "   generated batchId=$($generate.Body.batchId), level=$($generate.Body.level), count=$($generate.Body.count)"
 }

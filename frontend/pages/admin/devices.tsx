@@ -9,7 +9,7 @@ import {
   listAdminDevices,
   revokeAdminDevice
 } from '../../lib/admin-api';
-import { clearAdminToken, hasAdminToken } from '../../lib/admin-auth';
+import { ensureAdminSession } from '../../lib/admin-gate';
 import { DeviceBlockedError } from '../../lib/api-client';
 
 function formatClientDateTime(value: string | undefined): string {
@@ -34,8 +34,8 @@ export default function AdminDevicesPage() {
   const [revokingDeviceId, setRevokingDeviceId] = useState('');
 
   function goToLogin(): void {
-    clearAdminToken();
-    router.replace('/admin/login');
+    signOut();
+    router.replace('/login');
   }
 
   async function loadDevices(): Promise<void> {
@@ -58,13 +58,13 @@ export default function AdminDevicesPage() {
   }
 
   useEffect(() => {
-    if (!hasAdminToken()) {
-      goToLogin();
-      return;
-    }
-
     async function bootstrap(): Promise<void> {
       try {
+        const decision = await ensureAdminSession();
+        if (decision !== 'allow') {
+          router.replace('/login');
+          return;
+        }
         await loadDevices();
       } finally {
         setLoading(false);

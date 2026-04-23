@@ -1,6 +1,6 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { validateDeviceForEvent } from '../common/device';
-import { verifyAdminToken } from '../common/auth';
+import { verifyAdminAccess } from '../common/auth';
 import { updateStatus } from '../common/aws';
 import { json } from '../common/http';
 import { apiRequestLogFields, errorLogFields, logError, logInfo, logWarn } from '../common/log';
@@ -16,7 +16,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return json(deviceValidation.statusCode, { message: deviceValidation.message });
     }
 
-    if (!(await verifyAdminToken(event))) {
+    if (!(await verifyAdminAccess(event))) {
       logWarn('Unauthorized request', requestFields);
       return json(401, { message: 'Unauthorized' });
     }
@@ -36,3 +36,4 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     throw error;
   }
 };
+

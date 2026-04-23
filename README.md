@@ -7,11 +7,11 @@ Minimal production-ready serverless system for generating and serving AWS exam-s
 - **Scheduled generation (every 8 hours)**: EventBridge Scheduler -> `DailyGeneratorFunction` Lambda -> Gemini 2.5 Flash -> DynamoDB single-table write.
 - **Public practice API**: `GET /api/practice/questions` where Lambda randomly picks level and returns random published questions.
 - **Learner auth**: Amazon Cognito User Pool (email/password sign-up + email verification + required `name` attribute).
-- **Admin API**: Bearer token validation in Lambda (token in SSM Parameter Store).
+- **Admin API**: Cognito JWT + `custom:is_admin=true` claim validation in Lambda.
 - **Device bootstrap**: `POST /api/device/seed` issues a browser-scoped seed used to derive the `X-Device-Id` header required by every HTTP API route.
 - **Practice answer persistence**: Learner answer selections are saved in a dedicated DynamoDB table and rehydrated on next visit.
 - **Frontend**: Next.js static export hosted on GitHub Pages.
-- **Admin browser flow**: Frontend calls `/api/admin/login`, `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status`, `/api/admin/devices`, and `/api/admin/devices/{deviceId}` directly, with the shared device header attached automatically.
+- **Admin browser flow**: Frontend calls `/api/admin/batches`, `/api/admin/generate`, `/api/admin/batches/{batchId}/publish`, `/api/admin/batches/{batchId}/deprecate`, `/api/admin/questions`, `/api/admin/questions/status`, `/api/admin/devices`, and `/api/admin/devices/{deviceId}` directly, with Cognito `Authorization` and `X-Device-Id` headers attached automatically.
 
 ## Core constraints implemented
 
@@ -75,13 +75,13 @@ Default URL: `http://127.0.0.1:3002`
 ### 3) Smoke-test endpoints
 
 ```powershell
-.\scripts\smoke-local-api.ps1 -AdminToken "<your-admin-token>"
+.\scripts\smoke-local-api.ps1 -AdminIdToken "<your-cognito-id-token>"
 ```
 
 Optional (will generate new question batches):
 
 ```powershell
-.\scripts\smoke-local-api.ps1 -AdminToken "<your-admin-token>" -RunMutations
+.\scripts\smoke-local-api.ps1 -AdminIdToken "<your-cognito-id-token>" -RunMutations
 ```
 
 The smoke script now validates the device bootstrap flow first, then retries practice and admin requests with `X-Device-Id`.
@@ -98,7 +98,6 @@ npm run dev
 
 - `GEMINI_MODEL` (default `gemini-2.5-flash`)
 - `GEMINI_API_KEY_PARAMETER_NAME` -> SSM parameter string (raw API key)
-- `ADMIN_TOKEN_PARAMETER_NAME` -> SSM parameter string (raw admin token)
 - `TABLE_NAME` (questions table, default `aws_exam_questions`)
 - `DEVICE_TABLE_NAME` (device table, default `aws_exam_devices`)
 - `PRACTICE_ANSWERS_TABLE_NAME` (practice answers table, default `aws_exam_practice_answers`)
@@ -107,6 +106,17 @@ npm run dev
   - `NEXT_PUBLIC_COGNITO_REGION`
   - `NEXT_PUBLIC_COGNITO_USER_POOL_ID`
   - `NEXT_PUBLIC_COGNITO_CLIENT_ID`
+
+## Admin assignment runbook
+
+Set admin access per user in Cognito by updating `custom:is_admin`:
+
+```bash
+aws cognito-idp admin-update-user-attributes \
+  --user-pool-id <user-pool-id> \
+  --username <user-email> \
+  --user-attributes Name=custom:is_admin,Value=true
+```
 
 ## GitHub Actions
 

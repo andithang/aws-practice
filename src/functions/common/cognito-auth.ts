@@ -29,29 +29,32 @@ function decodeClaimsFromBearerToken(authorization: string): Record<string, unkn
   }
 }
 
-export function getUserSubFromEvent(event: APIGatewayProxyEvent): string {
+function getClaimsFromEvent(event: APIGatewayProxyEvent): Record<string, unknown> | undefined {
   const authorizer = asRecord(event.requestContext?.authorizer);
-  const claims =
+  const authorizerClaims =
     asRecord(authorizer?.claims) ??
     asRecord(asRecord(authorizer?.jwt)?.claims);
+
+  return authorizerClaims ?? decodeClaimsFromBearerToken(getAuthorizationHeader(event));
+}
+
+export function getUserSubFromEvent(event: APIGatewayProxyEvent): string {
+  const claims = getClaimsFromEvent(event);
   const sub = claims?.sub;
   if (typeof sub === 'string' && sub.trim()) return sub.trim();
-
-  const tokenClaims = decodeClaimsFromBearerToken(getAuthorizationHeader(event));
-  const tokenSub = tokenClaims?.sub;
-  return typeof tokenSub === 'string' ? tokenSub.trim() : '';
+  return '';
 }
 
 export function getUserEmailFromEvent(event: APIGatewayProxyEvent): string {
-  const authorizer = asRecord(event.requestContext?.authorizer);
-  const claims =
-    asRecord(authorizer?.claims) ??
-    asRecord(asRecord(authorizer?.jwt)?.claims);
+  const claims = getClaimsFromEvent(event);
   const email = claims?.email;
   if (typeof email === 'string' && email.trim()) return email.trim().toLowerCase();
+  return '';
+}
 
-  const tokenClaims = decodeClaimsFromBearerToken(getAuthorizationHeader(event));
-  const tokenEmail = tokenClaims?.email;
-  if (typeof tokenEmail !== 'string') return '';
-  return tokenEmail.trim().toLowerCase();
+export function isAdminUserFromEvent(event: APIGatewayProxyEvent): boolean {
+  const claims = getClaimsFromEvent(event);
+  const isAdmin = claims?.['custom:is_admin'];
+  if (typeof isAdmin !== 'string') return false;
+  return isAdmin.trim().toLowerCase() === 'true';
 }

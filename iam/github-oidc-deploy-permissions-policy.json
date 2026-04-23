@@ -182,7 +182,6 @@
         "ssm:RemoveTagsFromResource"
       ],
       "Resource": [
-        "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/andithang-practice/*/admin-token",
         "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/andithang-practice/*/gemini-api-key"
       ]
     },

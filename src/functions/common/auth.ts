@@ -1,42 +1,24 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { getParameterValue } from './aws';
-import { apiRequestLogFields, errorLogFields, logError, logInfo, logWarn } from './log';
+import { isAdminUserFromEvent } from './cognito-auth';
+import { apiRequestLogFields, logInfo, logWarn } from './log';
 
 export interface AuthResult {
   ok: boolean;
   message?: string;
 }
 
-export async function validateAdminToken(event: APIGatewayProxyEvent): Promise<AuthResult> {
+export async function validateAdminAccess(event: APIGatewayProxyEvent): Promise<AuthResult> {
   const logFields = { component: 'common-auth', ...apiRequestLogFields(event) };
-  const auth = event.headers.authorization || event.headers.Authorization;
-  if (!auth?.startsWith('Bearer ')) {
-    logWarn('Authorization header missing or malformed', logFields);
-    return { ok: false, message: 'Invalid authorization header' };
+  if (!isAdminUserFromEvent(event)) {
+    logWarn('Admin claim verification failed', logFields);
+    return { ok: false, message: 'Admin access required' };
   }
 
-  try {
-    const token = auth.replace('Bearer ', '').trim();
-    const adminToken = await getParameterValue(process.env.ADMIN_TOKEN_PARAMETER_NAME!);
-    const isValid = token === adminToken;
-
-    if (!isValid) {
-      logWarn('Admin token verification failed', logFields);
-      return { ok: false, message: 'Invalid admin token' };
-    }
-
-    logInfo('Admin token verified', logFields);
-    return { ok: true };
-  } catch (error) {
-    logError('Admin token verification failed with error', {
-      ...logFields,
-      ...errorLogFields(error)
-    });
-    return { ok: false, message: 'Authentication failed' };
-  }
+  logInfo('Admin claim verified', logFields);
+  return { ok: true };
 }
 
-export async function verifyAdminToken(event: APIGatewayProxyEvent): Promise<boolean> {
-  const result = await validateAdminToken(event);
+export async function verifyAdminAccess(event: APIGatewayProxyEvent): Promise<boolean> {
+  const result = await validateAdminAccess(event);
   return result.ok;
 }

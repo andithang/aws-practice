@@ -4,11 +4,6 @@ vi.mock('../frontend/lib/api-client', () => ({
   apiRequest: vi.fn()
 }));
 
-vi.mock('../frontend/lib/admin-auth', () => ({
-  clearAdminToken: vi.fn(),
-  getAdminToken: vi.fn(() => 'admin-token')
-}));
-
 import { apiRequest } from '../frontend/lib/api-client';
 import {
   AdminUnauthorizedError,

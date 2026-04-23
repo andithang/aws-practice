@@ -5,7 +5,7 @@ vi.mock('../src/functions/common/device', () => ({
 }));
 
 vi.mock('../src/functions/common/auth', () => ({
-  verifyAdminToken: vi.fn()
+  verifyAdminAccess: vi.fn()
 }));
 
 vi.mock('../src/functions/common/aws', () => ({
@@ -15,7 +15,7 @@ vi.mock('../src/functions/common/aws', () => ({
 
 import { handler } from '../src/functions/admin-questions-import/handler';
 import { batchGetItems, putItem } from '../src/functions/common/aws';
-import { verifyAdminToken } from '../src/functions/common/auth';
+import { verifyAdminAccess } from '../src/functions/common/auth';
 import { validateDeviceForEvent } from '../src/functions/common/device';
 import { questionImportMaxRows } from '../src/functions/common/question-import';
 
@@ -60,7 +60,7 @@ describe('admin questions import handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(validateDeviceForEvent).mockResolvedValue({ ok: true });
-    vi.mocked(verifyAdminToken).mockResolvedValue(true);
+    vi.mocked(verifyAdminAccess).mockResolvedValue(true);
     vi.mocked(batchGetItems).mockResolvedValue([]);
     vi.mocked(putItem).mockResolvedValue({} as never);
   });
@@ -75,11 +75,11 @@ describe('admin questions import handler', () => {
     const response = await handler(buildEvent(buildMultipartBody(buildCsv([validQuestionRow]))));
 
     expect(response.statusCode).toBe(428);
-    expect(vi.mocked(verifyAdminToken)).not.toHaveBeenCalled();
+    expect(vi.mocked(verifyAdminAccess)).not.toHaveBeenCalled();
   });
 
-  it('returns 401 when admin token is invalid', async () => {
-    vi.mocked(verifyAdminToken).mockResolvedValueOnce(false);
+  it('returns 401 when admin claim is missing', async () => {
+    vi.mocked(verifyAdminAccess).mockResolvedValueOnce(false);
 
     const response = await handler(buildEvent(buildMultipartBody(buildCsv([validQuestionRow]))));
 
@@ -180,3 +180,4 @@ describe('admin questions import handler', () => {
     expect(payload.errors).toHaveLength(1);
   });
 });
+

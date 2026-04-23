@@ -16,6 +16,11 @@ class MemoryStorage {
   }
 }
 
+function buildJwt(payload: Record<string, unknown>): string {
+  const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  return `header.${encoded}.signature`;
+}
+
 describe('cognito auth client', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -67,5 +72,51 @@ describe('cognito auth client', () => {
     const module = await import('../frontend/lib/cognito-auth');
     await module.signIn({ email: 'user@example.com', password: 'Password123' });
     await expect(module.getValidIdToken()).resolves.toBe('id-token');
+  });
+
+  it('detects admin users from custom:is_admin claim', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            AuthenticationResult: {
+              IdToken: buildJwt({ sub: 'user-1', 'custom:is_admin': 'TRUE' }),
+              AccessToken: 'access-token',
+              RefreshToken: 'refresh-token',
+              ExpiresIn: 3600
+            }
+          }),
+          { status: 200 }
+        )
+      )
+    );
+
+    const module = await import('../frontend/lib/cognito-auth');
+    await module.signIn({ email: 'admin@example.com', password: 'Password123' });
+    await expect(module.isCurrentUserAdmin()).resolves.toBe(true);
+  });
+
+  it('treats missing admin claim as non-admin', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            AuthenticationResult: {
+              IdToken: buildJwt({ sub: 'user-2' }),
+              AccessToken: 'access-token',
+              RefreshToken: 'refresh-token',
+              ExpiresIn: 3600
+            }
+          }),
+          { status: 200 }
+        )
+      )
+    );
+
+    const module = await import('../frontend/lib/cognito-auth');
+    await module.signIn({ email: 'user@example.com', password: 'Password123' });
+    await expect(module.isCurrentUserAdmin()).resolves.toBe(false);
   });
 });
