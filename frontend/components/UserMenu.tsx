@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { getCurrentUserEmail, hasStoredSession, signOut } from '../lib/cognito-auth';
+import { getCurrentUserClaims, hasStoredSession, isAdminClaim, signOut } from '../lib/cognito-auth';
 
 function avatarLabel(email: string | null): string {
   if (!email) return '?';
@@ -8,21 +9,32 @@ function avatarLabel(email: string | null): string {
   return first ? first.toUpperCase() : '?';
 }
 
+function emailFromClaims(claims: Record<string, unknown> | null): string | null {
+  if (!claims) return null;
+  const email = typeof claims.email === 'string' ? claims.email.trim() : '';
+  if (email) return email;
+
+  const username = typeof claims['cognito:username'] === 'string' ? claims['cognito:username'].trim() : '';
+  return username || null;
+}
+
 export default function UserMenu() {
   const router = useRouter();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
-  const [signedIn, setSignedIn] = useState(hasStoredSession());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function loadUser(): Promise<void> {
       const activeSession = hasStoredSession();
-      const currentEmail = activeSession ? await getCurrentUserEmail() : null;
+      const claims = activeSession ? await getCurrentUserClaims() : null;
       if (cancelled) return;
       setSignedIn(activeSession);
-      setEmail(currentEmail);
+      setEmail(emailFromClaims(claims));
+      setIsAdmin(isAdminClaim(claims));
     }
 
     void loadUser();
@@ -48,6 +60,7 @@ export default function UserMenu() {
     signOut();
     setMenuOpen(false);
     setEmail(null);
+    setIsAdmin(false);
     setSignedIn(false);
     await router.replace('/login');
   }
@@ -75,6 +88,16 @@ export default function UserMenu() {
         >
           <p className="truncate text-xs uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">Signed in as</p>
           <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">{email || 'Not signed in'}</p>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Admin
+            </Link>
+          )}
           <button
             type="button"
             role="menuitem"
