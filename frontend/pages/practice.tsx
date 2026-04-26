@@ -171,6 +171,10 @@ export default function Practice() {
     setCheckedResults((prev) => ({ ...prev, [questionKey]: true }));
   }
 
+  function scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function isAnswerCorrect(question: Question, picked: string[]): boolean {
     const expected = question.correctAnswers || [];
     if (expected.length === 0) return false;
@@ -253,6 +257,7 @@ export default function Practice() {
     if (!level) return;
 
     if (pagination.effectivePage > 1) {
+      scrollToTop();
       void loadQuestions(level, pagination.effectivePage - 1, pagination.effectiveWindow, pagination.size);
       return;
     }
@@ -266,6 +271,7 @@ export default function Practice() {
       );
       const lastPageOfPreviousWindow =
         previousWindowCount > 0 ? Math.ceil(previousWindowCount / pagination.size) : 1;
+      scrollToTop();
       void loadQuestions(level, lastPageOfPreviousWindow, previousWindow, pagination.size);
     }
   }
@@ -275,11 +281,13 @@ export default function Practice() {
     const pagesPerWindow = Math.max(1, Math.ceil(pagination.windowSize / pagination.size));
 
     if (pagination.effectivePage < pagination.totalPagesInWindow) {
+      scrollToTop();
       void loadQuestions(level, pagination.effectivePage + 1, pagination.effectiveWindow, pagination.size);
       return;
     }
 
     if (pagination.hasNextWindow) {
+      scrollToTop();
       void loadQuestions(
         level,
         pagesPerWindow + 1,
@@ -291,6 +299,7 @@ export default function Practice() {
 
   function changePageSize(size: number): void {
     if (!level) return;
+    scrollToTop();
     void loadQuestions(level, 1, 0, size);
   }
 
