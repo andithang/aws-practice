@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import Link from 'next/link';
+import NotebookShell from '../components/NotebookShell';
 import UserMenu from '../components/UserMenu';
 import '../styles/globals.css';
 
@@ -21,6 +22,7 @@ export default function App({ Component, pageProps }: AppProps) {
         </div>
       </header>
       <Component {...pageProps} />
+      <NotebookShell />
     </>
   );
 }

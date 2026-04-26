@@ -15,7 +15,7 @@ export function json(
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': corsOrigin,
       'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Api-Key,x-api-key,X-Device-Id',
-      'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
       'Access-Control-Allow-Credentials': 'true',
       ...extraHeaders
     },
