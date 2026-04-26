@@ -271,7 +271,7 @@ export default function NotebookShell() {
           setIsDesktop(matchMediaDesktop());
           setOpen(true);
         }}
-        className="fixed right-3 top-1/2 z-30 -translate-y-1/2 rounded-full border border-slate-300 bg-white p-3 text-slate-700 shadow-lg transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        className="fixed right-3 top-1/2 z-30 -translate-y-1/2 rounded-full border border-slate-400 bg-white p-3 text-slate-900 shadow-lg transition hover:bg-slate-100 dark:border-slate-500 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
           <path d="M7 4h11a2 2 0 0 1 2 2v14H7a3 3 0 0 0-3 3V7a3 3 0 0 1 3-3z" />
@@ -294,27 +294,27 @@ export default function NotebookShell() {
         <aside
           className={
             isDesktop
-              ? 'fixed right-3 top-20 z-40 flex h-[calc(100vh-6rem)] w-[26rem] flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900'
-              : 'fixed right-0 top-0 z-40 flex h-full w-[min(26rem,100vw)] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900'
+              ? 'fixed right-3 top-20 z-40 flex h-[calc(100vh-6rem)] w-[26rem] flex-col rounded-2xl border border-slate-300 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900'
+              : 'fixed right-0 top-0 z-40 flex h-full w-[min(26rem,100vw)] flex-col border-l border-slate-300 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-900'
           }
         >
-          <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+          <header className="flex items-center justify-between border-b border-slate-300 px-4 py-3 dark:border-slate-600">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-500">Notebook</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Personal AWS notes</p>
+              <p className="text-xs text-slate-700 dark:text-slate-300">Personal AWS notes</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-lg border border-slate-400 px-2 py-1 text-xs text-slate-900 hover:bg-slate-100 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
             >
               Close
             </button>
           </header>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
-            <section className="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Note</label>
+            <section className="space-y-2 rounded-xl border border-slate-300 p-3 dark:border-slate-600">
+              <label className="text-xs font-medium text-slate-800 dark:text-slate-200">Note</label>
               <textarea
                 value={editorNoteText}
                 maxLength={4000}
@@ -324,7 +324,7 @@ export default function NotebookShell() {
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               />
 
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Tags</label>
+              <label className="text-xs font-medium text-slate-800 dark:text-slate-200">Tags</label>
               <input
                 value={editorTagQuery}
                 onChange={(event) => setEditorTagQuery(event.target.value)}
@@ -347,10 +347,10 @@ export default function NotebookShell() {
                   </label>
                 ))}
                 {filteredEditorTagOptions.length === 0 && (
-                  <p className="px-1 py-1 text-xs text-slate-500 dark:text-slate-400">No matching services.</p>
+                  <p className="px-1 py-1 text-xs text-slate-700 dark:text-slate-300">No matching services.</p>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">{editorTags.length} tags selected</p>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300">{editorTags.length} tags selected</p>
 
               <div className="flex items-center gap-2">
                 <button
@@ -365,7 +365,7 @@ export default function NotebookShell() {
                   <button
                     type="button"
                     onClick={resetEditor}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-lg border border-slate-400 px-3 py-2 text-xs text-slate-900 hover:bg-slate-100 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
                   >
                     Cancel edit
                   </button>
@@ -373,8 +373,8 @@ export default function NotebookShell() {
               </div>
             </section>
 
-            <section className="mt-4 space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Search by keyword</label>
+            <section className="mt-4 space-y-2 rounded-xl border border-slate-300 p-3 dark:border-slate-600">
+              <label className="text-xs font-medium text-slate-800 dark:text-slate-200">Search by keyword</label>
               <input
                 value={filterKeywordDraft}
                 onChange={(event) => setFilterKeywordDraft(event.target.value)}
@@ -382,7 +382,7 @@ export default function NotebookShell() {
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
               />
 
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Filter by tags</label>
+              <label className="text-xs font-medium text-slate-800 dark:text-slate-200">Filter by tags</label>
               <input
                 value={filterTagQuery}
                 onChange={(event) => setFilterTagQuery(event.target.value)}
@@ -405,15 +405,15 @@ export default function NotebookShell() {
                   </label>
                 ))}
                 {filteredFilterTagOptions.length === 0 && (
-                  <p className="px-1 py-1 text-xs text-slate-500 dark:text-slate-400">No matching services.</p>
+                  <p className="px-1 py-1 text-xs text-slate-700 dark:text-slate-300">No matching services.</p>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">{filterTags.length} tags selected</p>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300">{filterTags.length} tags selected</p>
             </section>
 
             <section className="mt-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-700 dark:text-slate-300">
                   {pagination.totalFiltered} notes | page {currentPageDisplay}/{totalPages}
                 </p>
                 <div className="flex items-center gap-2">
@@ -421,7 +421,7 @@ export default function NotebookShell() {
                     type="button"
                     onClick={goToPrevPage}
                     disabled={loading || (!pagination.hasPrevWindow && pagination.effectivePage <= 1)}
-                    className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-lg border border-slate-400 px-2 py-1 text-xs text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
                   >
                     Prev
                   </button>
@@ -429,7 +429,7 @@ export default function NotebookShell() {
                     type="button"
                     onClick={goToNextPage}
                     disabled={loading || (!pagination.hasNextWindow && pagination.effectivePage >= pagination.totalPagesInWindow)}
-                    className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-lg border border-slate-400 px-2 py-1 text-xs text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
                   >
                     Next
                   </button>
@@ -437,7 +437,7 @@ export default function NotebookShell() {
               </div>
 
               {loading && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">Loading notes...</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300">Loading notes...</p>
               )}
 
               {error && (
@@ -447,7 +447,7 @@ export default function NotebookShell() {
               )}
 
               {!loading && notes.length === 0 && (
-                <p className="rounded-lg border border-dashed border-slate-300 px-3 py-3 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-300">
+                <p className="rounded-lg border border-dashed border-slate-400 bg-slate-50 px-3 py-3 text-xs text-slate-700 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-200">
                   No notes found for current filters.
                 </p>
               )}
@@ -455,17 +455,17 @@ export default function NotebookShell() {
               {notes.map((note) => (
                 <article
                   key={note.noteId}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/70"
+                  className="rounded-xl border border-slate-300 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-800"
                 >
-                  <p className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-100">{note.note}</p>
-                  <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="whitespace-pre-wrap text-sm text-slate-900 dark:text-slate-100">{note.note}</p>
+                  <p className="mt-2 text-[11px] text-slate-700 dark:text-slate-300">
                     Updated: {formatClientDateTime(note.updatedAt)}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {note.tags.map((tag) => (
                       <span
                         key={`${note.noteId}-${tag}`}
-                        className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
+                        className="rounded-full border border-brand-300 bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-900 dark:border-brand-600 dark:bg-brand-800/70 dark:text-brand-100"
                       >
                         {tag}
                       </span>
@@ -476,7 +476,7 @@ export default function NotebookShell() {
                     <button
                       type="button"
                       onClick={() => beginEdit(note)}
-                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="rounded-lg border border-slate-400 px-2 py-1 text-xs text-slate-900 hover:bg-slate-100 dark:border-slate-500 dark:text-slate-100 dark:hover:bg-slate-800"
                     >
                       Edit
                     </button>
