@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { awsServiceTags } from '../lib/aws-service-tags';
 import {
@@ -67,6 +67,8 @@ export default function NotebookShell() {
   const [editorTags, setEditorTags] = useState<string[]>([]);
   const [editorTagQuery, setEditorTagQuery] = useState('');
   const [filterTagQuery, setFilterTagQuery] = useState('');
+  const panelBodyRef = useRef<HTMLDivElement | null>(null);
+  const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const hidden = useMemo(() => shouldHideNotebook(router.pathname), [router.pathname]);
   const normalizedEditorTagQuery = editorTagQuery.trim().toLowerCase();
@@ -221,6 +223,16 @@ export default function NotebookShell() {
     setEditorNoteId(note.noteId);
     setEditorNoteText(note.note);
     setEditorTags(note.tags);
+    setEditorTagQuery('');
+
+    requestAnimationFrame(() => {
+      panelBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      editorTextareaRef.current?.focus();
+      editorTextareaRef.current?.setSelectionRange(
+        editorTextareaRef.current.value.length,
+        editorTextareaRef.current.value.length
+      );
+    });
   }
 
   function goToPrevPage(): void {
@@ -312,10 +324,11 @@ export default function NotebookShell() {
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div ref={panelBodyRef} className="flex-1 overflow-y-auto px-4 py-3">
             <section className="space-y-2 rounded-xl border border-slate-300 p-3 dark:border-slate-600">
               <label className="text-xs font-medium text-slate-800 dark:text-slate-200">Note</label>
               <textarea
+                ref={editorTextareaRef}
                 value={editorNoteText}
                 maxLength={4000}
                 onChange={(event) => setEditorNoteText(event.target.value)}
