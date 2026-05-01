@@ -1,7 +1,7 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { validateDeviceForEvent } from '../common/device';
 import { verifyAdminAccess } from '../common/auth';
-import { queryByPk } from '../common/aws';
+import { queryAllByPk } from '../common/aws';
 import { json } from '../common/http';
 import { apiRequestLogFields, errorLogFields, logError, logInfo, logWarn } from '../common/log';
 
@@ -23,8 +23,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return json(401, { message: 'Unauthorized' });
     }
 
-    const all = await Promise.all(levels.map((level) => queryByPk(`LEVEL#${level}`)));
-    const batches = all.flatMap((result) => (result.Items || []).filter((item) => item.entityType === 'BATCH'));
+    const all = await Promise.all(levels.map((level) => queryAllByPk(`LEVEL#${level}`)));
+    const batches = all.flatMap((items) => items.filter((item) => item.entityType === 'BATCH'));
     logInfo('Fetched admin batches', { ...requestFields, batchCount: batches.length });
     return json(200, { batches });
   } catch (error) {
