@@ -196,7 +196,7 @@ export default function AdminDevicesPage() {
                       const expired = isExpiredDevice(device.expiresAt);
                       return (
                         <tr key={device.deviceId} className="border-b border-slate-100 dark:border-slate-800">
-                          <td className="max-w-[20rem] px-3 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 sm:text-sm">
+                          <td className="max-w-[20rem] px-3 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 sm:text-sm break-all" title={device.deviceId}>
                             {device.deviceId}
                           </td>
                           <td className="max-w-[16rem] truncate px-3 py-3 text-slate-700 dark:text-slate-200" title={device.email || '-'}>
